@@ -657,6 +657,21 @@ export const CatalogHealthView: React.FC<CatalogHealthViewProps> = ({
         </div>
       </section>
 
+      <section className="bg-white rounded-2xl p-5 border border-[#c2c6d6]/40 shadow-xs">
+        <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
+          <div>
+            <div className="text-[11px] font-bold uppercase tracking-wider text-[#0058be]">Scan coverage receipt</div>
+            <h2 className="text-[17px] font-extrabold text-[#131b2e] mt-1">Public storefront snapshot</h2>
+            <p className="text-[13px] text-[#424754] mt-1">Assessed {auditData.scanned ?? auditData.productsCount} products returned by the public storefront feed. This is best-effort coverage, not proof of the full Shopify catalog.</p>
+          </div>
+          <span className="px-3 py-1 rounded-full bg-[#fff4e5] text-[#825100] text-[11px] font-bold shrink-0">Not authoritative</span>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4 text-[12px]">
+          <div className="rounded-xl bg-[#f2f3ff] p-3"><strong className="text-[#131b2e]">Included:</strong> public product fields, first-variant identifiers, images, titles, descriptions and product type.</div>
+          <div className="rounded-xl bg-[#faf8ff] p-3"><strong className="text-[#131b2e]">Not included:</strong> Merchant Center diagnostics, unpublished/inaccessible products, and GS1 assignment ownership.</div>
+        </div>
+      </section>
+
       {/* Beginner-Friendly Quick Navigation Banner */}
       {onNavigateTab && (() => {
         const barcodeIssueCount = auditData.issues.find(i => i.category === 'gtin' || i.id.includes('gtin'))?.count ?? auditData.highPriorityCount;
@@ -782,7 +797,7 @@ export const CatalogHealthView: React.FC<CatalogHealthViewProps> = ({
             ) : (
               <>
                 <span className="material-symbols-outlined text-[16px] text-[#006c49]">check_circle</span>
-                <span>Full catalog analyzed</span>
+                <span>Public storefront snapshot analyzed</span>
               </>
             )}
           </div>

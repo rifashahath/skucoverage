@@ -71,6 +71,11 @@ check(
 	})(),
 )
 check("audit: max 5 recommendations", a.recommendations.length <= 5)
+check("audit: six explicit scoring dimensions", a.scoring.dimensions.length === 6, a.scoring)
+check("audit: issue classification present", a.issues.every((i: any) => ["eligibility_blocker", "data_warning", "growth_opportunity"].includes(i.classification)))
+check("audit: issue groups partition all issues", a.issueGroups.eligibilityBlockers.length + a.issueGroups.dataWarnings.length + a.issueGroups.growthOpportunities.length === a.issues.length)
+check("audit: coverage is explicit and non-authoritative", a.coverage.assessedProducts === 3 && a.coverage.authoritative === false, a.coverage)
+check("audit: GTIN warning does not claim GS1 ownership", a.issues.find((i: any) => i.type === "missing_gtin")?.classification === "data_warning")
 check("audit: nextSteps present", a.nextSteps.length === 3)
 
 /* ---- 2. determinism ---- */

@@ -296,6 +296,7 @@ function mapEngineReportToStoreAudit(report, storeDomain, activeAuditId) {
     return {
       id: `issue-${iss.type || idx}`,
       severity: (iss.priority || 'medium').toUpperCase(),
+      classification: iss.classification || 'data_warning',
       title: readableTitle(iss.type),
       description: iss.impact || 'Requires remediation for Google Merchant Center feed eligibility.',
       count: iss.count || affected.length || 1,
@@ -339,6 +340,7 @@ function mapEngineReportToStoreAudit(report, storeDomain, activeAuditId) {
     limitReached: Boolean(audit.limited ?? report.payload?.limited ?? (totalProducts >= 10000)),
     scanLimit: audit.scanLimit ?? report.payload?.scanLimit ?? null,
     scanned: audit.scanned ?? totalProducts,
+    coverage: audit.coverage || null,
     detectedIssuesCount,
     highPriorityCount,
     attributeBreakdown,
@@ -957,7 +959,7 @@ export function App() {
             />
           )}
 
-          {/* TAB: 1-Click Fix & Export Center */}
+          {/* TAB: Review & Export Center */}
           {activeTab === 'fix-export' && (
             <FixExportCenterView
               auditData={auditData}

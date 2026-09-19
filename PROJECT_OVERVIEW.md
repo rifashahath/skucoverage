@@ -61,7 +61,7 @@ Landing Page ──> Enter Store URL ──> Instant 60s Audit ──> Stunning 
 graph TD
     subgraph Client["Client Browser"]
         Landing["Landing Page (index.html)<br/>• Hero Storefront Input<br/>• ROI Calculator & Proof"]
-        SPA["React 19 SPA (/app/)<br/>• Catalog Health Dashboard<br/>• Barcode & SEO Studios<br/>• 1-Click Fix & Export Center"]
+        SPA["React 19 SPA (/app/)<br/>• Catalog Health Dashboard<br/>• Barcode & SEO Studios<br/>• Review & Export Center"]
     end
 
     subgraph EdgeWorker["Cloudflare Worker (api.skucoverage.com)"]
@@ -213,7 +213,7 @@ The frontend dashboard is a single-page application (SPA) built with **React 19*
 - **Searchable Taxonomy Directory**: Direct search across Google's 5,000+ official retail categories.
 - **1-Click Suggested Mapping**: Matches unmapped Shopify collections to Google taxonomy IDs.
 
-#### 5. 1-Click Fix & Export Center (`/app/fix-export`)
+#### 5. Review & Export Center (`/app/fix-export`)
 - **Shopify Native Import CSV**: Generates pre-formatted CSVs matching Shopify's exact column headers:  
   `Handle`, `Title`, `Option1 Name`, `Variant Barcode`, `Image Alt Text`, `Google Product Category`, `Status`.
 - **Zero-Manual-Entry Remediation**: Merchants upload the CSV directly to `Shopify Admin → Products → Import` to fix their entire catalog at once.
@@ -261,13 +261,13 @@ The frontend dashboard is a single-page application (SPA) built with **React 19*
 ```
 Average Monthly Google Shopping Ad Spend:     $3,500 / month
 Average Revenue Lost to Disapproved Ads:      15% - 25% ($525 - $875 / month)
-Excess CPC Penalties from Unmapped Taxonomy:  ~14% ($490 / month)
+Measured CPC impact: requires connected before/after campaign data
 -----------------------------------------------------------------------------
 Total Monthly Inefficiency for Merchant:      $1,015 - $1,365 / month
 
 SKUcoverage Pro Subscription Cost:            $19 / month
 Net Monthly Savings / Recovered Revenue:      $996 - $1,346 / month
-Return on Investment (ROI):                   >50x ROI in Month 1
+Return on Investment (ROI): requires validated customer outcome data
 ```
 
 ---
@@ -294,7 +294,7 @@ E2E TEST SUMMARY: 60 PASSED, 0 FAILED (100% PASS RATE)
 - **Group 5**: Barcode inspector route, live Modulo-10 validator checks, and barcode assignment.
 - **Group 6**: SEO Alt-text studio, missing alt-tag identification, and batch generator.
 - **Group 7**: Google taxonomy search filtering and 1-click suggested mapping acceptance.
-- **Group 8**: 1-Click Fix & Export Center, dynamic CSV generation, and download confirmation.
+- **Group 8**: Review & Export Center, dynamic CSV generation, and download confirmation.
 - **Group 9**: Beginner's guide accordions and persistent interactive checklist toggling.
 - **Group 10**: Audit history table search filtering, report re-loading, and automation modals.
 - **Group 11**: Store settings domain persistence, notification toggles, and danger zone confirmation modals.

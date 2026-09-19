@@ -8,6 +8,7 @@ import type {
 	EngineRequest,
 	EngineResponse,
 	Issue,
+	IssueClass,
 	Priority,
 	Product,
 } from "./types"
@@ -18,7 +19,7 @@ import { GENERIC_CATEGORIES, TAXONOMY } from "./taxonomy"
 /* ------------------------------------------------------------------ */
 
 export const IMPACT = {
-	gtin: "Google Shopping eligibility + fraud prevention",
+	gtin: "Identifier quality for feeds; eligibility depends on product type and Merchant Center diagnostics",
 	title: "Search visibility + click-through rate (CTR)",
 	description: "Conversion rate + SEO ranking",
 	category: "Product discoverability + personalization",
@@ -315,6 +316,7 @@ export function scoreProduct(product: Product): ProductScore {
 
 type IssueSpec = {
 	type: string
+	classification: IssueClass
 	priority: Priority
 	impact: string
 	match: (s: ProductScore) => boolean
@@ -324,6 +326,7 @@ type IssueSpec = {
 const ISSUE_SPECS: IssueSpec[] = [
 	{
 		type: "missing_title",
+		classification: "eligibility_blocker",
 		priority: "high",
 		impact: IMPACT.title,
 		match: (s) => s.title.state === "missing",
@@ -332,46 +335,52 @@ const ISSUE_SPECS: IssueSpec[] = [
 	},
 	{
 		type: "missing_gtin",
+		classification: "data_warning",
 		priority: "high",
 		impact: IMPACT.gtin,
 		match: (s) => s.gtin.state === "missing",
 		recommendation: (c, p) =>
-			`Add GTIN to ${c} product${c === 1 ? "" : "s"} (${p}% of catalog) - highest priority for Google Shopping`,
+			`Review identifiers on ${c} product${c === 1 ? "" : "s"} (${p}% of catalog). Add a genuine manufacturer GTIN when one exists; otherwise confirm identifier_exists rules in Merchant Center`,
 	},
 	{
 		type: "invalid_gtin",
+		classification: "data_warning",
 		priority: "high",
 		impact: IMPACT.gtin,
 		match: (s) => s.gtin.state === "invalid",
 		recommendation: (c) =>
-			`Fix ${c} invalid GTIN value${c === 1 ? "" : "s"} - must be a GTIN-8, UPC-A, EAN-13 or GTIN-14 with a valid GS1 check digit. Use the barcode printed on the manufacturer packaging; do not invent a number.`,
+			`Review ${c} malformed GTIN value${c === 1 ? "" : "s"} - the format or Modulo-10 check digit is invalid. A passing check digit proves format only, not GS1 ownership; verify it with the supplier or Verified by GS1.`,
 	},
 	{
 		type: "no_images",
+		classification: "eligibility_blocker",
 		priority: "high",
 		impact: IMPACT.images,
 		match: (s) => s.images.state === "none",
 		recommendation: (c, p) =>
-			`Add images to ${c} product${c === 1 ? "" : "s"} with zero photos (${p}% of catalog) - blocks feeds and kills trust`,
+			`Add images to ${c} product${c === 1 ? "" : "s"} with zero photos (${p}% of catalog) - may block listing eligibility and reduces buyer trust`,
 	},
 	{
 		type: "title_too_short",
+		classification: "data_warning",
 		priority: "high",
 		impact: IMPACT.title,
 		match: (s) => s.title.state === "too_short",
 		recommendation: (c) =>
-			`Rewrite ${c} title${c === 1 ? "" : "s"} under 20 characters - unusable for search`,
+			`Review ${c} title${c === 1 ? "" : "s"} under 20 characters - this is a quality heuristic, not a universal disapproval rule`,
 	},
 	{
 		type: "incomplete_title",
+		classification: "growth_opportunity",
 		priority: "medium",
 		impact: IMPACT.title,
 		match: (s) => s.title.state === "incomplete",
 		recommendation: (c) =>
-			`Expand ${c} product title${c === 1 ? "" : "s"} to 50-60 characters including main keywords`,
+			`Review ${c} product title${c === 1 ? "" : "s"} for product type and useful attributes; length is a quality heuristic`,
 	},
 	{
 		type: "title_too_long",
+		classification: "growth_opportunity",
 		priority: "low",
 		impact: IMPACT.title,
 		match: (s) => s.title.state === "too_long",
@@ -380,6 +389,7 @@ const ISSUE_SPECS: IssueSpec[] = [
 	},
 	{
 		type: "missing_description",
+		classification: "data_warning",
 		priority: "medium",
 		impact: IMPACT.description,
 		match: (s) => s.description.state === "missing",
@@ -388,14 +398,16 @@ const ISSUE_SPECS: IssueSpec[] = [
 	},
 	{
 		type: "incomplete_description",
+		classification: "growth_opportunity",
 		priority: "medium",
 		impact: IMPACT.description,
 		match: (s) => s.description.state === "incomplete",
 		recommendation: (c) =>
-			`Add 100+ character descriptions with material, size, color and use case to ${c} product${c === 1 ? "" : "s"}`,
+			`Review ${c} product description${c === 1 ? "" : "s"} for useful material, size, color and use-case details; length is a quality heuristic`,
 	},
 	{
 		type: "variants_as_products",
+		classification: "data_warning",
 		priority: "medium",
 		impact: IMPACT.variants,
 		match: (s) => s.variants.state === "variants_as_products",
@@ -404,6 +416,7 @@ const ISSUE_SPECS: IssueSpec[] = [
 	},
 	{
 		type: "duplicate_variant_titles",
+		classification: "data_warning",
 		priority: "medium",
 		impact: IMPACT.variants,
 		match: (s) => s.variants.state === "duplicate_variant_titles",
@@ -412,6 +425,7 @@ const ISSUE_SPECS: IssueSpec[] = [
 	},
 	{
 		type: "missing_brand",
+		classification: "growth_opportunity",
 		priority: "medium",
 		impact: IMPACT.brand,
 		match: (s) => !s.hasBrand,
@@ -420,6 +434,7 @@ const ISSUE_SPECS: IssueSpec[] = [
 	},
 	{
 		type: "missing_sku",
+		classification: "data_warning",
 		priority: "low",
 		impact: IMPACT.variants,
 		match: (s) => !s.hasSku,
@@ -427,6 +442,7 @@ const ISSUE_SPECS: IssueSpec[] = [
 	},
 	{
 		type: "missing_category",
+		classification: "growth_opportunity",
 		priority: "low",
 		impact: IMPACT.category,
 		match: (s) => s.category.state === "missing",
@@ -435,6 +451,7 @@ const ISSUE_SPECS: IssueSpec[] = [
 	},
 	{
 		type: "generic_category",
+		classification: "growth_opportunity",
 		priority: "low",
 		impact: IMPACT.category,
 		match: (s) => s.category.state === "generic",
@@ -443,6 +460,7 @@ const ISSUE_SPECS: IssueSpec[] = [
 	},
 	{
 		type: "duplicate_category_levels",
+		classification: "data_warning",
 		priority: "low",
 		impact: IMPACT.category,
 		match: (s) => s.category.state === "duplicate_levels",
@@ -451,6 +469,7 @@ const ISSUE_SPECS: IssueSpec[] = [
 	},
 	{
 		type: "too_few_images",
+		classification: "growth_opportunity",
 		priority: "low",
 		impact: IMPACT.images,
 		match: (s) => s.images.state === "too_few",
@@ -475,6 +494,9 @@ export function auditFullCatalog(products: Product[]) {
 					variants: 0,
 				},
 				issues: [] as Issue[],
+				issueGroups: { eligibilityBlockers: [], dataWarnings: [], growthOpportunities: [] },
+				scoring: { dimensions: ["titles", "descriptions", "gtins", "categories", "images", "variants"], weights: WEIGHTS, note: "Quality heuristics; not a Merchant Center eligibility verdict" },
+				coverage: { assessedProducts: 0, source: "provided_product_snapshot", authoritative: false, included: ["product fields supplied to the engine"], excluded: ["Merchant Center diagnostics", "GS1 company assignment verification", "unpublished or inaccessible products"] },
 				recommendations: ["No products to audit - connect a store with products"],
 				nextSteps: ["Import products, then re-run the audit"],
 			},
@@ -492,6 +514,7 @@ export function auditFullCatalog(products: Product[]) {
 		const percent = pct(affected.length, total)
 		issues.push({
 			type: spec.type,
+			classification: spec.classification,
 			count: affected.length,
 			affectedProducts: affected.slice(0, MAX_AFFECTED),
 			priority: spec.priority,
@@ -532,6 +555,13 @@ export function auditFullCatalog(products: Product[]) {
 			score,
 			scoreBreakdown,
 			issues,
+			issueGroups: {
+				eligibilityBlockers: issues.filter((issue) => issue.classification === "eligibility_blocker"),
+				dataWarnings: issues.filter((issue) => issue.classification === "data_warning"),
+				growthOpportunities: issues.filter((issue) => issue.classification === "growth_opportunity"),
+			},
+			scoring: { dimensions: ["titles", "descriptions", "gtins", "categories", "images", "variants"], weights: WEIGHTS, note: "Quality heuristics; not a Merchant Center eligibility verdict" },
+			coverage: { assessedProducts: total, source: "provided_product_snapshot", authoritative: false, included: ["product fields supplied to the engine"], excluded: ["Merchant Center diagnostics", "GS1 company assignment verification", "unpublished or inaccessible products"] },
 			recommendations: recommendations.slice(0, 5).map((r) => r.text),
 			nextSteps: [
 				top[0]
