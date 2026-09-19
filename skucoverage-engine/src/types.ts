@@ -13,6 +13,7 @@ export type ResultMessageType =
 	| "ai_readiness_result"
 
 export type Priority = "high" | "medium" | "low"
+export type IssueClass = "eligibility_blocker" | "data_warning" | "growth_opportunity"
 
 export interface Product {
 	id: string
@@ -53,6 +54,7 @@ export interface EngineResponse {
 
 export interface Issue {
 	type: string
+	classification: IssueClass
 	count: number
 	affectedProducts: string[]
 	priority: Priority

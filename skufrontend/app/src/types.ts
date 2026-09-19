@@ -20,6 +20,7 @@ export interface AttributeScore {
 export interface CatalogIssue {
   id: string;
   severity: 'HIGH' | 'MEDIUM' | 'LOW';
+  classification?: 'eligibility_blocker' | 'data_warning' | 'growth_opportunity';
   title: string;
   description: string;
   count: number;
@@ -78,4 +79,5 @@ export interface StoreAuditData {
   limitReached?: boolean;
   scanLimit?: number;
   scanned?: number;
+  coverage?: { source: string; authoritative: boolean; included: string[]; excluded: string[] };
 }

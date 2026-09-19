@@ -56,7 +56,7 @@ export const FixExportCenterView: React.FC<FixExportCenterViewProps> = ({
             <span>Export &amp; Sync Center</span>
           </div>
           <h1 className="text-[24px] sm:text-[28px] font-extrabold text-[#131b2e]">
-            1-Click Fix &amp; Export Center
+            Review &amp; Export Center
           </h1>
           <p className="text-[14px] text-[#424754] leading-relaxed">
             <strong>How do you get these fixes into Shopify?</strong> Download the fix list as a CSV. It names every affected product, the problem found, and what needs to be supplied. Barcodes are never generated for you — a GTIN is licensed to a company by GS1, so it has to come from your supplier or your own GS1 registration. Once you have applied the changes in Shopify, run another scan to see your score move.
@@ -69,7 +69,7 @@ export const FixExportCenterView: React.FC<FixExportCenterViewProps> = ({
             Zero Coding Needed
           </div>
           <p className="text-[#424754] text-[12px]">
-            Uses standard Shopify CSV format that matches your existing product handles seamlessly.
+            Exports a review list, not an import-ready Shopify overwrite file.
           </p>
         </div>
       </div>
@@ -103,7 +103,7 @@ export const FixExportCenterView: React.FC<FixExportCenterViewProps> = ({
 
           <div className="p-5 rounded-2xl bg-[#fff5f5] border border-[#ffcdd2] flex flex-col gap-2">
             <span className="text-[11px] font-bold uppercase tracking-wider text-[#ba1a1a]">
-              Critical Feed Blockers
+              Eligibility Blockers
             </span>
             <div className="flex items-baseline gap-2">
               <span className="text-[36px] font-black text-[#ba1a1a]">
@@ -112,7 +112,7 @@ export const FixExportCenterView: React.FC<FixExportCenterViewProps> = ({
               <span className="text-[14px] font-bold text-[#ba1a1a]">items</span>
             </div>
             <p className="text-[12px] text-[#ba1a1a]">
-              High priority issues (missing/invalid GTINs, missing images) that risk feed disapproval.
+              Potential blockers detected from available storefront fields. Confirm against Merchant Center diagnostics before editing.
             </p>
           </div>
 
@@ -204,6 +204,30 @@ export const FixExportCenterView: React.FC<FixExportCenterViewProps> = ({
               <span>Download Diagnostic Report</span>
             </button>
           </div>
+        </div>
+      </div>
+
+      {/* Safe remediation foundation: no mutation is performed from this screen. */}
+      <div className="bg-white rounded-3xl p-6 border border-[#c2c6d6]/40 shadow-xs flex flex-col gap-4">
+        <div>
+          <h2 className="text-[18px] font-extrabold text-[#131b2e]">Safe change workflow</h2>
+          <p className="text-[13px] text-[#424754] mt-1">SKUcoverage currently prepares a review list only. It does not write to Shopify or promise rollback.</p>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {[
+            ['1', 'Coverage receipt', 'Confirm what the public scan could and could not inspect.'],
+            ['2', 'Field-by-field diff', 'Review current and proposed values before any future write.'],
+            ['3', 'Backup first', 'Authenticated repair must snapshot affected products.'],
+            ['4', 'Dry run', 'Validate dependent option and variant fields without applying changes.'],
+            ['5', 'Explicit approval', 'No changes until the merchant approves the exact diff.'],
+            ['6', 'Audit and rollback', 'Record each applied change and verify the live result.'],
+          ].map(([step, title, copy]) => (
+            <div key={step} className="p-4 rounded-2xl bg-[#faf8ff] border border-[#c2c6d6]/30">
+              <span className="text-[11px] font-bold text-[#0058be]">STEP {step}</span>
+              <div className="font-bold text-[#131b2e] text-[14px] mt-1">{title}</div>
+              <div className="text-[12px] text-[#424754] mt-1">{copy}</div>
+            </div>
+          ))}
         </div>
       </div>
 

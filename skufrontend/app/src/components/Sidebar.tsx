@@ -59,7 +59,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     },
     {
       id: 'fix-export',
-      label: '1-Click Fix & Export',
+      label: 'Review & Export',
       icon: 'file_download',
       badge: 'Ready',
       badgeColor: 'bg-[#6ffbbe]/50 text-[#006c49]',
