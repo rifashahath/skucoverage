@@ -7,6 +7,25 @@ Production uses two Cloudflare projects for `skucoverage.tech`:
 
 Do not attach either production domain until both projects deploy successfully on their Cloudflare preview URLs.
 
+## GitHub Actions deployment (recommended)
+
+`.github/workflows/cloudflare-deploy.yml` deploys both projects on every push to `main` (or manually via Actions -> Deploy to Cloudflare -> Run workflow):
+
+- **worker** job: typechecks and runs `npx wrangler deploy` for `skucoverage121`.
+- **pages** job: rebuilds the dashboard with the production environment variables, creates the Pages project `skucoverage-web` if missing, and publishes `cloudflare-pages/` to it.
+
+One-time setup:
+
+1. Delete any Worker-style project named `skucoverage-web` in the Cloudflare dashboard (Workers & Pages list). The Git-connected `skucoverage-web` project created earlier builds the API Worker with `npx wrangler deploy`; it is not the static frontend and must not stay connected. The workflow recreates `skucoverage-web` as a real Pages project on the first run.
+2. In GitHub: repository Settings -> Secrets and variables -> Actions -> New repository secret:
+   - `CLOUDFLARE_API_TOKEN`: a custom Cloudflare token with Account: Workers Scripts Edit, Cloudflare Pages Edit, and Account Settings Read on this one account (the existing `SKUcoverage deploy` token already covers this).
+   - `CLOUDFLARE_ACCOUNT_ID`: the account ID shown on the Workers & Pages overview sidebar.
+3. Push to `main` or run the workflow manually. Both jobs should go green; the Pages job output prints the `skucoverage-web.pages.dev` preview URL.
+
+Worker secrets (`SUPABASE_URL`, `SUPABASE_ANON_KEY`, `CSV_SIGNING_SECRET`, ...) stay in Cloudflare; `wrangler deploy` does not remove them. The dashboard Git build on `skucoverage121` can be disconnected once the Actions workflow is green, so only one system deploys on push.
+
+The dashboard build bakes `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` into the bundle. Without them the committed dashboard renders but auth stays disabled (`supabase = null`), so never deploy a bundle built without them.
+
 ## Build the committed frontend
 
 The dashboard source lives in `skufrontend/app/`. Its production API default is `https://api.skucoverage.tech` and the built files are committed under `cloudflare-pages/app/`.
@@ -17,10 +36,10 @@ npm --prefix skufrontend/app ci
 VITE_API_BASE_URL=https://api.skucoverage.tech npm run build:app
 ```
 
-`build:app` copies the Vite output into `cloudflare-pages/app/`. Before committing, confirm no production asset contains `127.0.0.1`, `localhost`, or the old `.com` domain:
+`build:app` copies the Vite output into `cloudflare-pages/app/`. Before committing, confirm no production asset references the dev API or the old `.com` domain (the Supabase client library legitimately contains generic `localhost` strings):
 
 ```sh
-rg -n '127\.0\.0\.1|localhost|api\.skucoverage\.com' cloudflare-pages/app
+rg -n '127\.0\.0\.1:8787|api\.skucoverage\.com' cloudflare-pages/app
 ```
 
 For local dashboard development only, explicitly set `VITE_API_BASE_URL=http://127.0.0.1:8787` in an uncommitted `.env.local`.
@@ -128,7 +147,7 @@ npm --prefix skufrontend/app run lint
 VITE_API_BASE_URL=https://api.skucoverage.tech npm run build:app
 
 # Confirm production assets have no local or old-domain API URL
-! rg -n '127\.0\.0\.1|localhost|api\.skucoverage\.com' cloudflare-pages/app
+! rg -n '127\.0\.0\.1:8787|api\.skucoverage\.com' cloudflare-pages/app
 ```
 
 Once preview deployments pass, smoke-test the preview endpoints. Only then connect `api.skucoverage.tech` to the Worker and `skucoverage.tech` to Pages.
