@@ -64,7 +64,7 @@ graph TD
         SPA["React 19 SPA (/app/)<br/>• Catalog Health Dashboard<br/>• Barcode & SEO Studios<br/>• Review & Export Center"]
     end
 
-    subgraph EdgeWorker["Cloudflare Worker (api.skucoverage.com)"]
+    subgraph EdgeWorker["Cloudflare Worker (api.skucoverage.tech)"]
         HonoApp["Hono Edge Router"]
         AnonEndpoint["POST /api/audit/anonymous"]
         AuthEndpoint["POST /api/audit/free"]

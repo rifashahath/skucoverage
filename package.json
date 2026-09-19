@@ -7,7 +7,8 @@
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
     "db:init": "wrangler d1 execute skucoverage-prod --file=schema.sql",
-    "build:app": "npm --prefix skufrontend/app run build && cp -R skufrontend/app/dist/. cloudflare-pages/app/"
+    "build:app": "npm --prefix skufrontend/app run build && cp -R skufrontend/app/dist/. cloudflare-pages/app/",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "hono": "^4.6.12"

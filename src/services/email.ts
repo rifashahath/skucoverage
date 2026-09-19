@@ -15,7 +15,7 @@ export async function sendAuditCompleteEmail(
         sender: { email: senderEmail, name: 'SKUcoverage' },
         to: [{ email: toEmail }],
         subject: `Your SKUcoverage audit is ready (score: ${score}%)`,
-        htmlContent: `<h2 style="color:#12304a">Your catalog audit is complete</h2><p>Health score: <strong>${score}%</strong></p><p>Issues found: <strong>${issueCount}</strong></p><p><a href="https://app.skucoverage.com/app/">View your dashboard</a></p><p style="color:#667085;font-size:12px">Audit ${auditId}</p>`,
+        htmlContent: `<h2 style="color:#12304a">Your catalog audit is complete</h2><p>Health score: <strong>${score}%</strong></p><p>Issues found: <strong>${issueCount}</strong></p><p><a href="https://skucoverage.tech/app/">View your dashboard</a></p><p style="color:#667085;font-size:12px">Audit ${auditId}</p>`,
       }),
     });
     if (!response.ok) console.error('Brevo email failed', response.status, await response.text());

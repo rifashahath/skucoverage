@@ -1,6 +1,6 @@
 export interface Env {
   DB: D1Database;
-  R2: R2Bucket;
+  R2?: R2Bucket;
   SUPABASE_URL: string;
   SUPABASE_ANON_KEY: string;
   CSV_SIGNING_SECRET: string;

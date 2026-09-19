@@ -2,7 +2,7 @@ import { supabase } from './supabase'
 
 // The production Worker is isolated from the static Pages site. Local development
 // can override this with VITE_API_BASE_URL=http://127.0.0.1:8787.
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || 'https://api.skucoverage.com').replace(/\/$/, '')
+const API_BASE = (import.meta.env.VITE_API_BASE_URL || 'https://api.skucoverage.tech').replace(/\/$/, '')
 
 async function request(path, options = {}) {
   const { data: { session } } = supabase ? await supabase.auth.getSession() : { data: { session: null } }

@@ -166,7 +166,7 @@ async function fetchWithTimeout(url: string): Promise<Response> {
       signal: controller.signal,
       headers: {
         accept: 'application/json',
-        'user-agent': 'SKUcoverage-Catalog-Auditor/1.0 (+https://skucoverage.com/bot)',
+        'user-agent': 'SKUcoverage-Catalog-Auditor/1.0 (+https://skucoverage.tech/bot)',
       },
     });
   } catch (error) {
