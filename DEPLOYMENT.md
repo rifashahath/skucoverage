@@ -1,99 +1,134 @@
 # SKUcoverage deployment
 
-## Architecture
+Production uses two Cloudflare projects for `skucoverage.tech`:
 
-- Deploy `cloudflare-pages/` as the frontend static directory. The dashboard is served from `/app/`.
-- Deploy the Worker in this repository as the API, ideally on `api.skucoverage.com`.
-- Set `VITE_API_BASE_URL=https://api.skucoverage.com` when building the dashboard.
-- Use Supabase for authentication and run `supabase/migrations/20260912140000_create_users_rls.sql` in that project.
+1. **Worker API**: the existing `skucoverage121` Worker, built from the repository root and routed to `api.skucoverage.tech`.
+2. **Pages frontend**: a separate Pages project that publishes `cloudflare-pages/` at `skucoverage.tech`. The landing page is `/` and the Vite dashboard is `/app/`.
 
-## Production checklist (done)
+Do not attach either production domain until both projects deploy successfully on their Cloudflare preview URLs.
 
-- [x] **D1 Database verified & schema applied** (2026-09-13):
-  - Database: `skucoverage-prod` (UUID: `25c19793-a518-4f1b-8c56-69ca9ef60417`)
-  - Schema executed remotely (`schema.sql`): `users`, `subscriptions`, `audits`, `scan_rate_limits` created with unique index `users_email_lower_idx`.
-- [x] **Base Worker Secrets configured** (2026-09-13):
-  - `SUPABASE_URL` -> configured
-  - `SUPABASE_ANON_KEY` -> configured
-  - `CSV_SIGNING_SECRET` -> generated 32-byte secret and uploaded
-- [x] **Frontend App Built & Pages Deployed** (2026-09-13):
-  - Built with Vite 8 + React 19 to `cloudflare-pages/app/`.
-  - Bundle verified to reference `https://api.skucoverage.com`.
-  - Deployed to Cloudflare Pages: `https://skucoverage.pages.dev` / `https://skucoverage.pages.dev/app/`.
-- [x] **Engine Unit Tests verified** (2026-09-13):
-  - All 45 tests passing in `skucoverage-engine`.
-- [x] **TypeScript compilation verified** (2026-09-13):
-  - `npx tsc --noEmit` passes with 0 errors.
+## Build the committed frontend
 
-## Manual Steps Remaining
+The dashboard source lives in `skufrontend/app/`. Its production API default is `https://api.skucoverage.tech` and the built files are committed under `cloudflare-pages/app/`.
 
-### 1. Cloudflare R2 Activation & Bucket Creation
-Cloudflare requires enabling R2 once in the dashboard:
-1. Visit: [Cloudflare R2 Dashboard](https://dash.cloudflare.com/6476cf669b35b8ba61d2ab5d25089ce4/r2/overview)
-2. Click **Enable R2** (confirm account setup / payment details if required by Cloudflare).
-3. Run in terminal:
-   ```sh
-   npx wrangler r2 bucket create skucoverage-files
-   npx wrangler deploy
-   ```
-
-### 2. Stripe Configuration & Secrets
-1. In the Stripe Dashboard:
-   - Create Product 1: **SKUcoverage Pro** at `$19.00 / month` (recurring). Copy price ID (e.g. `price_...`).
-   - Create Product 2: **SKUcoverage Scale** at `$39.00 / month` (recurring). Copy price ID (e.g. `price_...`).
-   - Add Webhook Endpoint: `https://api.skucoverage.com/api/webhook/stripe` (or `https://skucoverage-backend.jass-products.workers.dev/api/webhook/stripe` until custom domain is routed).
-     - Events to select:
-       - `checkout.session.completed`
-       - `customer.subscription.updated`
-       - `customer.subscription.deleted`
-     - Copy the Signing Secret (`whsec_...`).
-2. Run in terminal:
-   ```sh
-   npx wrangler secret put STRIPE_SECRET_KEY
-   npx wrangler secret put STRIPE_WEBHOOK_SECRET
-   npx wrangler secret put STRIPE_PRICE_19
-   npx wrangler secret put STRIPE_PRICE_39
-   npx wrangler secret put BREVO_API_KEY
-   ```
-
-### 3. Supabase Setup
-1. Open your Supabase SQL Editor:
-   - Run `supabase/migrations/20260912140000_create_users_rls.sql`.
-2. Under **Authentication -> Providers**:
-   - Enable **Email**.
-   - Disable **Confirm email** for instant self-serve onboarding.
-3. Under **Authentication -> URL Configuration**:
-   - **Site URL**: `https://app.skucoverage.com`
-   - **Redirect URLs**:
-     - `https://app.skucoverage.com/**`
-     - `https://app.skucoverage.com/login`
-     - `https://skucoverage.pages.dev/**`
-     - `https://skucoverage.pages.dev/app/**`
-     - `http://localhost:5173/**`
-
-### 4. Custom Domains (DNS & Cloudflare Routing)
-1. **API Worker**: Under Cloudflare Dashboard -> Workers & Pages -> `skucoverage-backend` -> Settings -> Domains & Routes -> Add Custom Domain `api.skucoverage.com`.
-2. **Frontend Pages**: Under Cloudflare Dashboard -> Workers & Pages -> `skucoverage` -> Custom Domains -> Add `app.skucoverage.com` and `skucoverage.com`.
-
-### 5. Verification & Live Smoke Tests
-Once deployed:
 ```sh
-# 1. Health check
-curl -s https://api.skucoverage.com/api/health
-
-# 2. Anonymous scan
-curl -s -X POST https://api.skucoverage.com/api/audit/anonymous \
-  -H "Content-Type: application/json" \
-  -d '{"storeUrl":"bulletproof.myshopify.com"}'
-
-# 3. Check audits in D1
-npx wrangler d1 execute skucoverage-prod --command="SELECT count(*) FROM audits;" --remote
-
-# 4. Email subscription
-curl -s -X POST https://api.skucoverage.com/api/email/subscribe \
-  -H "Content-Type: application/json" \
-  -d '{"email":"test@example.com","storeUrl":"bulletproof.myshopify.com"}'
-
-# 5. Check users in D1
-npx wrangler d1 execute skucoverage-prod --command="SELECT * FROM users WHERE email='test@example.com';" --remote
+npm ci
+npm --prefix skufrontend/app ci
+VITE_API_BASE_URL=https://api.skucoverage.tech npm run build:app
 ```
+
+`build:app` copies the Vite output into `cloudflare-pages/app/`. Before committing, confirm no production asset contains `127.0.0.1`, `localhost`, or the old `.com` domain:
+
+```sh
+rg -n '127\.0\.0\.1|localhost|api\.skucoverage\.com' cloudflare-pages/app
+```
+
+For local dashboard development only, explicitly set `VITE_API_BASE_URL=http://127.0.0.1:8787` in an uncommitted `.env.local`.
+
+## Project 1: Worker API (`skucoverage121`)
+
+Connect `rifashahath/skucoverage` to the existing Cloudflare Worker project and use:
+
+| Setting | Value |
+| --- | --- |
+| Production branch | `main` |
+| Root directory | `/` |
+| Build command | `npm ci && npm run typecheck --if-present` |
+| Deploy command | `npx wrangler deploy` |
+| Wrangler file | `wrangler.toml` |
+
+`wrangler.toml` intentionally uses `name = "skucoverage121"` so Git deployments update this project instead of creating or targeting another Worker.
+
+Required bindings:
+
+- D1 binding `DB` -> database `skucoverage-prod` (`25c19793-a518-4f1b-8c56-69ca9ef60417`)
+- Cron trigger `0 8 * * 1`
+
+The initial Worker deploy intentionally has no R2 binding, so it succeeds without enabling R2 or adding payment details. CSV export still works: reports are stored in D1 and the Worker generates the signed CSV response on demand. What is disabled is only R2-backed storage and retrieval of pre-generated CSV objects; no dashboard export control needs to be hidden.
+
+To add optional R2 storage later, enable R2, create `skucoverage-files`, then restore this block to `wrangler.toml` and redeploy:
+
+```toml
+[[r2_buckets]]
+binding = "R2"
+bucket_name = "skucoverage-files"
+```
+
+The Worker code treats `R2` as optional and automatically starts writing new audit CSV objects after the binding exists. Existing D1-backed reports keep exporting through the fallback path.
+
+Required Worker secrets:
+
+- `SUPABASE_URL`
+- `SUPABASE_ANON_KEY`
+- `CSV_SIGNING_SECRET`
+- `STRIPE_SECRET_KEY`
+- `STRIPE_WEBHOOK_SECRET`
+- `STRIPE_PRICE_19`
+- `STRIPE_PRICE_39`
+- `BREVO_API_KEY`
+
+The non-secret production values in `wrangler.toml` allow `https://skucoverage.tech`, send from `noreply@skucoverage.tech`, and use the existing seven-day CSV URL lifetime.
+
+After the preview Worker succeeds, add the Worker custom domain `api.skucoverage.tech`. Configure Stripe's webhook endpoint as:
+
+`https://api.skucoverage.tech/api/webhook/stripe`
+
+Subscribe it to:
+
+- `checkout.session.completed`
+- `customer.subscription.updated`
+- `customer.subscription.deleted`
+
+Apply the existing D1 schema only when needed:
+
+```sh
+npx wrangler d1 execute skucoverage-prod --remote --file=schema.sql
+```
+
+## Project 2: Pages frontend
+
+Create a separate Cloudflare Pages project connected to the same repository. Do not reuse the Worker project.
+
+| Setting | Value |
+| --- | --- |
+| Production branch | `main` |
+| Root directory | `/` |
+| Build command | `npm ci && npm --prefix skufrontend/app ci && VITE_API_BASE_URL=https://api.skucoverage.tech npm run build:app` |
+| Build output directory | `cloudflare-pages` |
+| Deploy command | Pages default (leave blank) |
+| Framework preset | `None` |
+| Node version | `20` or newer |
+
+The checked-in `cloudflare-pages/_redirects` supplies the dashboard SPA fallback under `/app/`.
+
+After the Pages preview works, attach `skucoverage.tech` to this Pages project. Do not attach `api.skucoverage.tech` to Pages.
+
+## Supabase URLs
+
+Under Authentication -> URL Configuration:
+
+- Site URL: `https://skucoverage.tech/app/`
+- Redirect URLs:
+  - `https://skucoverage.tech/app/**`
+  - the Pages preview URL under `/app/**`
+  - `http://localhost:5173/**` for local development only
+
+## Verification before changing DNS
+
+```sh
+# Typecheck Worker
+npx tsc --noEmit
+
+# Engine tests
+npm --prefix skucoverage-engine ci
+npm --prefix skucoverage-engine test
+
+# Frontend lint and production build
+npm --prefix skufrontend/app run lint
+VITE_API_BASE_URL=https://api.skucoverage.tech npm run build:app
+
+# Confirm production assets have no local or old-domain API URL
+! rg -n '127\.0\.0\.1|localhost|api\.skucoverage\.com' cloudflare-pages/app
+```
+
+Once preview deployments pass, smoke-test the preview endpoints. Only then connect `api.skucoverage.tech` to the Worker and `skucoverage.tech` to Pages.

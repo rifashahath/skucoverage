@@ -158,6 +158,7 @@ export function buildAuditCsv(report: Record<string, unknown>): string {
 }
 
 export async function uploadAuditCsv(env: Env, auditId: string, report: Record<string, unknown>): Promise<string> {
+  if (!env.R2) throw new Error('R2 storage is not configured');
   const csv = buildAuditCsv(report);
   const key = `audits/${auditId}.csv`;
   await env.R2.put(key, csv, { httpMetadata: { contentType: 'text/csv; charset=utf-8' } });
