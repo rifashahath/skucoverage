@@ -1,0 +1,99 @@
+{
+  "messageType": "ai_readiness_result",
+  "requestId": "req_ai",
+  "payload": {
+    "aiReadinessScore": 48,
+    "findings": [
+      {
+        "issue": "Missing price data",
+        "count": 3,
+        "affectedProducts": [
+          "prod_1",
+          "prod_2",
+          "prod_3"
+        ],
+        "percentOfCatalog": 100,
+        "impact": "Excluded from AI shopping comparisons",
+        "fix": "Ensure price is set and exposed in the feed"
+      },
+      {
+        "issue": "Missing availability data",
+        "count": 3,
+        "affectedProducts": [
+          "prod_1",
+          "prod_2",
+          "prod_3"
+        ],
+        "percentOfCatalog": 100,
+        "impact": "Agents drop products they cannot confirm are in stock",
+        "fix": "Publish inventory/availability state per variant"
+      },
+      {
+        "issue": "Image alt text missing",
+        "count": 3,
+        "affectedProducts": [
+          "prod_1",
+          "prod_2",
+          "prod_3"
+        ],
+        "percentOfCatalog": 100,
+        "impact": "Loses multimodal and image-search matching",
+        "fix": "Add descriptive alt text to each image"
+      },
+      {
+        "issue": "Missing or invalid GTIN",
+        "count": 2,
+        "affectedProducts": [
+          "prod_1",
+          "prod_3"
+        ],
+        "percentOfCatalog": 66.7,
+        "impact": "Cannot match to manufacturer data in AI agents",
+        "fix": "Add a valid 8-14 digit barcode per variant (or set identifierExists = no for handmade)"
+      },
+      {
+        "issue": "Missing or generic category",
+        "count": 2,
+        "affectedProducts": [
+          "prod_1",
+          "prod_3"
+        ],
+        "percentOfCatalog": 66.7,
+        "impact": "Weak intent matching in AI and on-site search",
+        "fix": "Assign a full Shopify Standard Product Taxonomy path"
+      },
+      {
+        "issue": "Missing brand field",
+        "count": 1,
+        "affectedProducts": [
+          "prod_3"
+        ],
+        "percentOfCatalog": 33.3,
+        "impact": "AI agents cannot match your products reliably",
+        "fix": "Add brand as product vendor/metafield or in the title"
+      },
+      {
+        "issue": "No product images",
+        "count": 1,
+        "affectedProducts": [
+          "prod_3"
+        ],
+        "percentOfCatalog": 33.3,
+        "impact": "Product cannot be rendered in agent results",
+        "fix": "Add at least 3 images per product"
+      },
+      {
+        "issue": "Missing description",
+        "count": 1,
+        "affectedProducts": [
+          "prod_3"
+        ],
+        "percentOfCatalog": 33.3,
+        "impact": "Agents have no text to reason over",
+        "fix": "Write 100+ character descriptions with attributes"
+      }
+    ],
+    "readinessLevel": "AT_RISK",
+    "recommendation": "Fix these blockers first: missing price data; missing availability data; image alt text missing - otherwise you stay invisible to AI shopping agents"
+  }
+}

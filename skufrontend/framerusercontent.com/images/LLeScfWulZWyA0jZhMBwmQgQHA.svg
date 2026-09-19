@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="252" height="235" viewBox="0 0 252 235" fill="none">
+  <!-- White Card Background with Rounded Corners -->
+  <rect width="251.848" height="234.596" rx="20" fill="#FFFFFF"/>
+
+  <!-- Drop shadow for donut container -->
+  <defs>
+    <filter id="shadowFilter" width="134.715" height="134.715" x="58.566" y="24.994" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse">
+      <feDropShadow dx="0" dy="4" stdDeviation="5" flood-color="#07448A" flood-opacity="0.15"/>
+    </filter>
+    <linearGradient id="arcTeal" x1="125.924" x2="125.924" y1="33.351" y2="143.351" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#38BDF8"/>
+      <stop offset="1" stop-color="#2563EB"/>
+    </linearGradient>
+    <linearGradient id="arcGreen" x1="125.924" x2="125.924" y1="33.351" y2="143.351" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#34D399"/>
+      <stop offset="1" stop-color="#059669"/>
+    </linearGradient>
+    <linearGradient id="arcOrange" x1="125.924" x2="125.924" y1="33.351" y2="143.351" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FBBF24"/>
+      <stop offset="1" stop-color="#F59E0B"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Donut Ring Inner Card Shadow -->
+  <g filter="url(#shadowFilter)">
+    <circle cx="125.924" cy="88.351" r="57.357" fill="#FFFFFF"/>
+  </g>
+
+  <!-- Donut Ring Arcs -->
+  <path fill="url(#arcTeal)" d="M133.146 140.857c.151 1.094-.614 2.107-1.713 2.217a55 55 0 0 1-40.195-12.039 55 55 0 0 1-20.182-38.874 55 55 0 0 1 52.762-58.77c1.104-.042 2.001.856 2.003 1.96l.029 15.13c.003 1.104-.892 1.995-1.995 2.059a35.872 35.872 0 0 0-7.597 70.355 35.9 35.9 0 0 0 12.566 1.209c1.101-.089 2.11.67 2.261 1.764z"/>
+  <path fill="url(#arcGreen)" d="M128.132 35.397c.046-1.103.979-1.965 2.08-1.878a55 55 0 0 1 47.716 36.927c.359 1.045-.24 2.163-1.297 2.485l-14.475 4.402c-1.057.321-2.168-.278-2.548-1.315a35.88 35.88 0 0 0-30.195-23.367c-1.099-.108-1.957-1.034-1.911-2.138z"/>
+  <path fill="url(#arcOrange)" d="M177.468 76.015c1.075-.257 2.158.405 2.375 1.488a55 55 0 0 1-7.834 40.867 55 55 0 0 1-34.214 23.685c-1.078.238-2.121-.485-2.32-1.572l-2.727-14.881c-.199-1.087.522-2.123 1.596-2.383a35.86 35.86 0 0 0 21.636-15.29 35.85 35.85 0 0 0 5.24-25.97c-.196-1.087.46-2.165 1.534-2.422z"/>
+
+  <!-- Inside Donut: 96% and Compliant SKUs -->
+  <text x="125.924" y="86" text-anchor="middle" fill="#0F172A" font-family="Inter, -apple-system, sans-serif" font-weight="800" font-size="24" letter-spacing="-0.5">96%</text>
+  <text x="125.924" y="99" text-anchor="middle" fill="#64748B" font-family="Inter, -apple-system, sans-serif" font-weight="600" font-size="8" letter-spacing="0.2">COMPLIANT</text>
+
+  <!-- Bottom Section of Donut Card -->
+  <line x1="24" y1="165" x2="228" y2="165" stroke="#F1F5F9" stroke-width="1.5"/>
+
+  <!-- Left Bottom: Label & Value -->
+  <text x="24" y="184" fill="#64748B" font-family="Inter, -apple-system, sans-serif" font-weight="500" font-size="9.5">Catalog Health</text>
+  <text x="24" y="205" fill="#0F172A" font-family="Inter, -apple-system, sans-serif" font-weight="700" font-size="15" letter-spacing="-0.3">Grade A+</text>
+
+  <!-- Right Bottom: Live status badge -->
+  <rect x="172" y="186" width="56" height="22" rx="11" fill="#F0FDF4" stroke="#BBF7D0" stroke-width="1"/>
+  <circle cx="183" cy="197" r="3" fill="#16A34A"/>
+  <text x="202" y="200.5" text-anchor="middle" fill="#15803D" font-family="Inter, -apple-system, sans-serif" font-weight="600" font-size="9.5">Audited</text>
+</svg>

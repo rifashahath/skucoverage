@@ -1,0 +1,17 @@
+{
+  "name": "fintechx-frontend",
+  "version": "1.0.0",
+  "description": "FintechX Framer Template Frontend",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "build:app": "npm --prefix app run build",
+    "dev:app": "npm --prefix app run dev"
+  },
+  "dependencies": {
+    "cors": "^2.8.6",
+    "express": "^5.2.1"
+  }
+}

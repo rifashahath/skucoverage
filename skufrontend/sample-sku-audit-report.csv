@@ -1,0 +1,8 @@
+SKU,Product Title,Variant,Issue Type,Severity,Google Shopping Feed Status,Meta Commerce Status,Recommended Fix,Fix Value / Ready Data
+PFP-NVY-XL,Performance Fleece Pullover,Navy / XL,Missing Barcode (GTIN),High,Disapproved,Warning,Add 12-digit UPC or 13-digit EAN,0840192847291
+TRS-OLV-105,Waterproof Trail Running Shoes,Olive / 10.5,Untagged Category,Medium,Warning,Warning,Assign Google Product Category,Apparel & Accessories > Shoes > Athletic Shoes
+CPD-WHT-01,Ceramic Matte Pour-Over Coffee Dripper,White / Standard,Missing Barcode (GTIN),High,Disapproved,Disapproved,Add 12-digit UPC or 13-digit EAN,0840192847307
+EAL-GRY-02,Ergonomic Aluminium Laptop Stand,Space Gray,Short Description (<45 chars),Low,Warning,Active,Expand product description to 150+ chars,"Premium aircraft-grade aluminium laptop riser with ergonomic 15-degree tilt..."
+MWS-GRY-L,Merino Wool Thermal Socks,Heather Gray / Large,Missing Age Group & Gender,Medium,Warning,Warning,Add age_group and gender tags,adult / unisex
+UPW-OLV-M,Ultralight Packable Windbreaker,Olive / Medium,Missing MPN / Brand,High,Disapproved,Active,Add brand name and manufacturer part number,All-Weather Co. / MPN-UPW-882
+ISB-MAT-750,Insulated Stainless Steel Bottle 750ml,Matte Black,Missing Image Alt Tag,Low,Active,Warning,Add descriptive image alt tag for indexing,750ml matte black double-walled insulated bottle

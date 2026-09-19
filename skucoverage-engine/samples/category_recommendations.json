@@ -1,0 +1,22 @@
+{
+  "messageType": "category_recommendations",
+  "requestId": "req_abc",
+  "payload": {
+    "recommendations": [
+      {
+        "productId": "prod_1",
+        "currentCategory": "Clothing",
+        "recommendedCategory": "Apparel & Accessories > Clothing > Shirts > T-Shirts",
+        "confidence": "medium",
+        "reason": "Matched \"t-shirt\" - current category \"Clothing\" is too broad"
+      },
+      {
+        "productId": "prod_2",
+        "currentCategory": null,
+        "recommendedCategory": "Apparel & Accessories > Shoes > Athletic Shoes",
+        "confidence": "medium",
+        "reason": "Matched \"running shoes\" - no category was set"
+      }
+    ]
+  }
+}

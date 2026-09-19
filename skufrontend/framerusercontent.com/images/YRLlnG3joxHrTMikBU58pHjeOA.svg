@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="160" height="34" viewBox="0 0 160 34" fill="none">
+  <!-- Rounded Brand Box Icon with Barcode / Tag symbol -->
+  <rect width="32" height="32" y="1" rx="8" fill="url(#sku_grad)"/>
+  <rect x="7" y="9" width="3" height="16" rx="1.5" fill="#ffffff"/>
+  <rect x="12" y="9" width="2" height="16" rx="1" fill="#ffffff"/>
+  <rect x="16" y="9" width="4" height="16" rx="1.5" fill="#ffffff"/>
+  <rect x="22" y="9" width="3" height="16" rx="1.5" fill="#ffffff"/>
+  
+  <!-- SKUcoverage Wordmark -->
+  <text x="40" y="24" font-family="Plus Jakarta Sans, system-ui, -apple-system, sans-serif" font-size="19" font-weight="800" fill="#0f172a" letter-spacing="-0.5px">SKU<tspan fill="#2563eb" font-weight="700">coverage</tspan></text>
+  
+  <defs>
+    <linearGradient id="sku_grad" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#3b82f6"/>
+      <stop offset="1" stop-color="#1d4ed8"/>
+    </linearGradient>
+  </defs>
+</svg>

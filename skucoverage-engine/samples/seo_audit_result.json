@@ -1,0 +1,60 @@
+{
+  "messageType": "seo_audit_result",
+  "requestId": "req_seo",
+  "payload": {
+    "seoScore": 14,
+    "issues": [
+      {
+        "productId": "prod_1",
+        "issue": "Title too short (7 chars)",
+        "current": "T-Shirt",
+        "recommendation": "Expand to 50-60 chars, e.g. \"T-Shirt - Premium Quality Shirts\"",
+        "impact": "Search visibility + CTR",
+        "priority": "high"
+      },
+      {
+        "productId": "prod_1",
+        "issue": "Description too short (7 chars)",
+        "current": "A shirt",
+        "recommendation": "Extend to 120-160 chars: what it is, material, who it is for, and one benefit",
+        "impact": "Meta description + conversion",
+        "priority": "high"
+      },
+      {
+        "productId": "prod_1",
+        "issue": "Description does not use category keywords",
+        "current": "A shirt",
+        "recommendation": "Work category terms naturally into the copy (clothing, shirts)",
+        "impact": "SEO ranking relevance",
+        "priority": "medium"
+      },
+      {
+        "productId": "prod_1",
+        "issue": "Incomplete schema.org Product data (6 fields missing)",
+        "current": "brand, gtin, sku, price, availability, image",
+        "recommendation": "Populate these fields so rich results and AI agents can parse the product",
+        "impact": "Rich results + AI agent visibility",
+        "priority": "medium"
+      },
+      {
+        "productId": "prod_1",
+        "issue": "Weak URL slug potential",
+        "current": "T-Shirt",
+        "recommendation": "Use a descriptive handle such as /products/blue-cotton-t-shirt-men",
+        "impact": "Crawlability + keyword signal",
+        "priority": "low"
+      }
+    ],
+    "schemaData": {
+      "hasProductSchema": false,
+      "missingFields": [
+        "availability",
+        "brand",
+        "gtin",
+        "image",
+        "price",
+        "sku"
+      ]
+    }
+  }
+}

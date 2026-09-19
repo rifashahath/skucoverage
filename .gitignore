@@ -1,0 +1,17 @@
+node_modules/
+.wrangler/
+.mf/
+dist/
+skufrontend/app/dist/
+.env
+.env.*
+!.env.example
+.dev.vars
+.env.local
+*.bak*
+*.tmp
+*.log
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

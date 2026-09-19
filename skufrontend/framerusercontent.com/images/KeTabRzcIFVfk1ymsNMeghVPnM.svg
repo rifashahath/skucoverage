@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="280" height="70" viewBox="0 0 280 70" fill="none">
+  <defs>
+    <linearGradient id="gradShopify" x1="12" y1="13" x2="56" y2="57" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#22C55E"/>
+      <stop offset="100%" stop-color="#15803D"/>
+    </linearGradient>
+    <linearGradient id="gradBlue" x1="12" y1="13" x2="56" y2="57" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#3B82F6"/>
+      <stop offset="100%" stop-color="#1D4ED8"/>
+    </linearGradient>
+    <linearGradient id="gradAmber" x1="12" y1="13" x2="56" y2="57" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#F59E0B"/>
+      <stop offset="100%" stop-color="#B45309"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Card Background -->
+  <rect width="278.5" height="68.5" x="0.75" y="0.75" fill="#FFFFFF" stroke="#DDE5ED" stroke-width="1" rx="10"/>
+
+  <!-- Icon -->
+  
+      <rect width="44" height="44" x="12" y="13" rx="10" fill="url(#gradAmber)"/>
+      <path d="M34 22 L44 38 L24 38 Z" fill="#FFFFFF" fill-opacity="0.9"/>
+      <rect x="33" y="27" width="2" height="6" rx="1" fill="#D97706"/>
+      <circle cx="34" cy="35" r="1.2" fill="#D97706"/>
+    
+
+  <!-- Text -->
+  <text x="66" y="32" fill="#0F172A" font-family="Inter, -apple-system, sans-serif" font-weight="700" font-size="11.5" letter-spacing="-0.2">Short Title Warnings (< 30 chars)</text>
+  <text x="66" y="48" fill="#64748B" font-family="Inter, -apple-system, sans-serif" font-weight="500" font-size="8.8">Optimize titles for AI & Google Shopping CTR</text>
+</svg>

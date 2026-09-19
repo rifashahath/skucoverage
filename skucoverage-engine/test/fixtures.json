@@ -1,0 +1,42 @@
+{
+  "messageType": "audit_full_catalog",
+  "payload": {
+    "storeId": "fashion-nova",
+    "products": [
+      {
+        "id": "prod_1",
+        "title": "Blue T-Shirt",
+        "description": "A nice blue shirt",
+        "gtin": null,
+        "category": "Clothing",
+        "variants": 1,
+        "images": 1,
+        "brand": "MyBrand",
+        "sku": "TS-001"
+      },
+      {
+        "id": "prod_2",
+        "title": "Premium White Cotton Tank Top for Women - Breathable Summer Essential",
+        "description": "Premium quality white cotton tank top perfect for summer. Soft, breathable fabric ideal for women. Available in sizes XS-XXL. Machine washable.",
+        "gtin": "1234567890128",
+        "category": "Apparel & Accessories > Clothing > Shirts > Tank Tops",
+        "variants": 3,
+        "images": 5,
+        "brand": "MyBrand",
+        "sku": "TANK-WHITE-001"
+      },
+      {
+        "id": "prod_3",
+        "title": "Jeans",
+        "description": null,
+        "gtin": null,
+        "category": null,
+        "variants": 2,
+        "images": 0,
+        "brand": null,
+        "sku": null
+      }
+    ]
+  },
+  "requestId": "req_test_001"
+}

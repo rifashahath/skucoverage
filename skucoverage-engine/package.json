@@ -1,0 +1,13 @@
+{
+  "name": "skucoverage-engine",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "src/engine.ts",
+  "scripts": {
+    "test": "tsx test/run-tests.ts",
+    "audit": "tsx cli.ts"
+  },
+  "devDependencies": {
+    "tsx": "^4.21.0"
+  }
+}

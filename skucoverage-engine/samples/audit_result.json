@@ -1,0 +1,134 @@
+{
+  "messageType": "audit_result",
+  "requestId": "req_test_001",
+  "payload": {
+    "audit": {
+      "totalProducts": 3,
+      "score": 50,
+      "scoreBreakdown": {
+        "titles": 33,
+        "descriptions": 33,
+        "gtins": 33,
+        "categories": 50,
+        "images": 50,
+        "variants": 100
+      },
+      "issues": [
+        {
+          "type": "missing_gtin",
+          "count": 2,
+          "affectedProducts": [
+            "prod_1",
+            "prod_3"
+          ],
+          "priority": "high",
+          "impact": "Google Shopping eligibility + fraud prevention",
+          "percentOfCatalog": 66.7
+        },
+        {
+          "type": "title_too_short",
+          "count": 2,
+          "affectedProducts": [
+            "prod_1",
+            "prod_3"
+          ],
+          "priority": "high",
+          "impact": "Search visibility + click-through rate (CTR)",
+          "percentOfCatalog": 66.7
+        },
+        {
+          "type": "no_images",
+          "count": 1,
+          "affectedProducts": [
+            "prod_3"
+          ],
+          "priority": "high",
+          "impact": "Trust + conversion (social proof)",
+          "percentOfCatalog": 33.3
+        },
+        {
+          "type": "missing_description",
+          "count": 1,
+          "affectedProducts": [
+            "prod_3"
+          ],
+          "priority": "medium",
+          "impact": "Conversion rate + SEO ranking",
+          "percentOfCatalog": 33.3
+        },
+        {
+          "type": "incomplete_description",
+          "count": 1,
+          "affectedProducts": [
+            "prod_1"
+          ],
+          "priority": "medium",
+          "impact": "Conversion rate + SEO ranking",
+          "percentOfCatalog": 33.3
+        },
+        {
+          "type": "missing_brand",
+          "count": 1,
+          "affectedProducts": [
+            "prod_3"
+          ],
+          "priority": "medium",
+          "impact": "AI agent product matching + brand searches",
+          "percentOfCatalog": 33.3
+        },
+        {
+          "type": "missing_sku",
+          "count": 1,
+          "affectedProducts": [
+            "prod_3"
+          ],
+          "priority": "low",
+          "impact": "Inventory accuracy + AI agent compatibility",
+          "percentOfCatalog": 33.3
+        },
+        {
+          "type": "missing_category",
+          "count": 1,
+          "affectedProducts": [
+            "prod_3"
+          ],
+          "priority": "low",
+          "impact": "Product discoverability + personalization",
+          "percentOfCatalog": 33.3
+        },
+        {
+          "type": "generic_category",
+          "count": 1,
+          "affectedProducts": [
+            "prod_1"
+          ],
+          "priority": "low",
+          "impact": "Product discoverability + personalization",
+          "percentOfCatalog": 33.3
+        },
+        {
+          "type": "too_few_images",
+          "count": 1,
+          "affectedProducts": [
+            "prod_1"
+          ],
+          "priority": "low",
+          "impact": "Trust + conversion (social proof)",
+          "percentOfCatalog": 33.3
+        }
+      ],
+      "recommendations": [
+        "Add GTIN to 2 products (66.7% of catalog) - highest priority for Google Shopping",
+        "Rewrite 2 titles under 20 characters - unusable for search",
+        "Add images to 1 product with zero photos (33.3% of catalog) - blocks feeds and kills trust",
+        "Write descriptions for 1 product with none (33.3% of catalog)",
+        "Add 100+ character descriptions with material, size, color and use case to 1 product"
+      ],
+      "nextSteps": [
+        "Priority 1: Fix missing gtin on 2 products (high priority)",
+        "Priority 2: Batch-fix title too short by category - faster than one-by-one",
+        "Monitor: Re-audit in 1 week to track score movement"
+      ]
+    }
+  }
+}

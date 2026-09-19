@@ -1,0 +1,29 @@
+{
+  "messageType": "weekly_diff_result",
+  "requestId": "req_diff",
+  "payload": {
+    "weeklyReport": {
+      "scoreChange": "+5 points (72 → 77)",
+      "trend": "improving",
+      "improved": {
+        "missingGtin": {
+          "previous": 45,
+          "current": 40,
+          "fixed": 5
+        }
+      },
+      "newIssues": {
+        "missingCategory": {
+          "previous": 10,
+          "current": 15,
+          "increase": 5
+        }
+      },
+      "topRecommendations": [
+        "Great progress: 5 fewer missingGtin issues than last week - keep going",
+        "Regression: missingCategory grew by 5 - check your latest import or sync",
+        "This week: focus on missingGtin (40 products still affected)"
+      ]
+    }
+  }
+}
