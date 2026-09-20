@@ -65,7 +65,7 @@ export const InspectIssueModal: React.FC<InspectIssueModalProps> = ({
                     : `${issue.severity} Priority`}
               </span>
               <span className="text-[12px] font-bold text-[#727785]">
-                {issue.count} SKUs {issue.status === 'needs_verification' ? 'to verify' : issue.status === 'heuristic' ? 'flagged' : 'affected'}
+                {issue.count} product{issue.count === 1 ? '' : 's'} {issue.status === 'needs_verification' ? 'to verify' : issue.status === 'heuristic' ? 'with opportunities' : 'affected'}
               </span>
             </div>
             <h2 className="text-[20px] sm:text-[22px] font-extrabold text-[#131b2e]">
@@ -96,7 +96,7 @@ export const InspectIssueModal: React.FC<InspectIssueModalProps> = ({
         {/* Affected Items List */}
         <div className="flex-1 overflow-y-auto py-4 space-y-3">
           <span className="text-[11px] font-bold uppercase tracking-wider text-[#727785]">
-            Affected Products Specimen List
+            Product evidence (first 50)
           </span>
 
           {issue.affectedItems.map((item) => {
@@ -120,12 +120,20 @@ export const InspectIssueModal: React.FC<InspectIssueModalProps> = ({
                     </div>
                   )}
                   <div className="flex flex-col min-w-0">
-                    <span className="text-[14px] font-bold text-[#131b2e] truncate">
-                      {item.productTitle}
-                    </span>
-                    <span className="text-[11px] font-mono text-[#727785]">
-                      SKU: {item.sku}
-                    </span>
+                    {item.productUrl ? (
+                      <a href={item.productUrl} target="_blank" rel="noreferrer" className="text-[14px] font-bold text-[#0058be] truncate hover:underline">
+                        {item.productTitle}
+                      </a>
+                    ) : (
+                      <span className="text-[14px] font-bold text-[#131b2e] truncate">{item.productTitle}</span>
+                    )}
+                    <span className="text-[11px] font-mono text-[#727785]">Product ID / SKU: {item.sku}</span>
+                    <span className="text-[11px] text-[#727785]">Variant: {item.variant || 'First public storefront variant'}</span>
+                    {typeof item.gtinFound === 'boolean' ? (
+                      <span className="text-[11px] text-[#727785]">GTIN found: {item.gtinFound ? 'Yes' : 'No'}</span>
+                    ) : null}
+                    <span className="text-[11px] text-[#727785]">Source checked: {item.dataSourceChecked || 'Public storefront snapshot'}</span>
+                    <span className="text-[11px] font-semibold text-[#004395]">Verification status: {item.verificationStatus || 'Rule evaluated from public storefront data'}</span>
                     <span className="text-[12px] text-[#ba1a1a] mt-0.5">
                       Observed: {item.issueDetail}
                     </span>

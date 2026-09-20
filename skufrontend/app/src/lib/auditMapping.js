@@ -97,9 +97,18 @@ export function mapEngineReportToStoreAudit(report, storeDomain, activeAuditId) 
       // UI showed products that do not exist.
       affectedItems: affected.slice(0, 50).map((prodId, evidenceIndex) => {
         const evidence = Array.isArray(iss.evidence) ? iss.evidence[evidenceIndex] : null;
+        const relativeUrl = evidence?.productUrl || null;
+        const productUrl = relativeUrl && storeDomain
+          ? new URL(relativeUrl, `https://${storeDomain}`).toString()
+          : relativeUrl;
         return {
           sku: typeof prodId === 'string' && prodId ? (prodId.startsWith('gid://') ? prodId.split('/').pop() : prodId) : String(prodId),
-          productTitle: evidence?.observed || '',
+          productTitle: evidence?.productName || `Product ${prodId}`,
+          productUrl,
+          variant: evidence?.variant || 'First public storefront variant',
+          gtinFound: evidence?.gtinFound,
+          dataSourceChecked: evidence?.dataSourceChecked || 'Public storefront snapshot',
+          verificationStatus: evidence?.verificationStatus || 'Rule evaluated from public storefront data',
           issueDetail: evidence?.observed || `${readableTitle(iss.type)} flagged on this item`,
           suggestedFix: evidence?.expected || iss.impact || 'Review the source field',
           observed: evidence?.observed,
@@ -113,6 +122,7 @@ export function mapEngineReportToStoreAudit(report, storeDomain, activeAuditId) 
   });
 
   const recommendations = Array.isArray(audit.recommendations) ? audit.recommendations : [];
+  const recommendationDetails = Array.isArray(audit.recommendationDetails) ? audit.recommendationDetails : [];
   const nextSteps = Array.isArray(audit.nextSteps) ? audit.nextSteps : [];
   const combinedSteps = Array.from(new Set([...recommendations, ...nextSteps])).filter(Boolean);
 
@@ -123,6 +133,8 @@ export function mapEngineReportToStoreAudit(report, storeDomain, activeAuditId) 
     stepNumber: idx + 1,
     title: step,
     description: step,
+    products: recommendationDetails[idx]?.products ?? null,
+    unit: recommendationDetails[idx]?.unit ?? null,
     estimatedLift: '',
     liftColor: 'primary',
   }));

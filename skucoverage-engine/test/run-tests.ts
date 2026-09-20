@@ -355,43 +355,24 @@ check(
 	a.scoring,
 )
 
-/* ---- 14. shallow product type is a visible opportunity, not a silent score ---- */
+/* ---- 14. single-level product types are not unsupported opportunities ---- */
 const shallow = runEngine({
 	messageType: "audit_full_catalog",
 	requestId: "req_shallow",
 	payload: {
-		products: [
-			{
-				id: "s1",
-				title: "Blue Cotton T-Shirt for Men - Soft Everyday Crew Neck",
-				description: "Soft cotton t-shirt in blue, available in sizes S-XXL, machine washable, perfect for everyday casual wear.",
-				gtin: "4006381333931",
-				category: "Shirts",
-				images: 4,
-				variants: 2,
-				brand: "B",
-				sku: "S1",
-			},
-		],
+		products: [{
+			id: "s1", title: "Blue Cotton T-Shirt for Men - Soft Everyday Crew Neck",
+			description: "Soft cotton t-shirt in blue, available in sizes S-XXL, machine washable, perfect for everyday casual wear.",
+			gtin: "4006381333931", category: "Shirts", images: 4, variants: 2, brand: "B", sku: "S1", handle: "blue-shirt",
+			variantTitles: ["Blue / Medium"],
+		}],
 	},
 })
 const sa = (shallow.payload as any).audit
-check(
-	"shallow: single-level product_type becomes a heuristic opportunity",
-	sa.issues.some(
-		(i: any) =>
-			i.type === "shallow_product_type" &&
-			i.status === "heuristic" &&
-			i.classification === "growth_opportunity" &&
-			/single level/i.test(i.title),
-	),
-	sa.issues.map((i: any) => i.type),
-)
-check(
-	"shallow: opportunity counted in opportunities bucket",
-	sa.findingSummary.opportunities === 1 && sa.findingSummary.confirmedIssues === 0,
-	sa.findingSummary,
-)
+check("product type: single-level value is not flagged without a confident suggestion", !sa.issues.some((i: any) => i.type === "shallow_product_type"), sa.issues)
+check("product type: single-level value receives full credit", sa.scoreBreakdown.categories === 100, sa.scoreBreakdown)
+check("evidence: product identity and source fields are included", sa.issues.every((i: any) => i.evidence.every((e: any) => e.productName && e.variant && e.dataSourceChecked && e.verificationStatus)), sa.issues)
+check("scoring: storefront and Merchant Center distinction is explicit", /storefront quality score/.test(sa.scoring.note) && /not a Merchant Center approval score/.test(sa.scoring.note), sa.scoring)
 
 console.log(`\n${passed} passed, ${failed} failed`)
 if (failed > 0) process.exit(1)

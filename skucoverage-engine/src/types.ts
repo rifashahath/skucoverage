@@ -70,7 +70,17 @@ export interface Issue {
 	status: FindingStatus
 	confidence: Confidence
 	source: EvidenceSource
-	evidence: Array<{ productId: string; observed: string; expected: string }>
+	evidence: Array<{
+		productId: string
+		productName: string
+		productUrl: string | null
+		variant: string
+		gtinFound: boolean
+		dataSourceChecked: string
+		verificationStatus: string
+		observed: string
+		expected: string
+	}>
 }
 
 export interface FindingSummary {

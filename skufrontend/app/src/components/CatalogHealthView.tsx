@@ -760,7 +760,7 @@ export const CatalogHealthView: React.FC<CatalogHealthViewProps> = ({
       })()}
 
       {/* 4 Metric Tiles in a Row */}
-      <section className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+      <section className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6 gap-4">
         {/* Tile 1: Catalog quality score */}
         <div className="bg-[#f2f3ff] p-6 rounded-[14px] flex flex-col justify-between shadow-xs">
           <div className="flex items-center justify-between">
@@ -866,6 +866,36 @@ export const CatalogHealthView: React.FC<CatalogHealthViewProps> = ({
             <span>Not evidence of a problem; the public storefront cannot confirm these</span>
           </div>
         </div>
+
+        {/* Tile 5: Optimization Opportunities */}
+        <div className="bg-[#f2f3ff] p-6 rounded-[14px] flex flex-col justify-between shadow-xs">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-[#727785]">Optimization Opportunities</span>
+            <span className="w-8 h-8 rounded-full bg-[#ffddb8] text-[#825100] flex items-center justify-center">
+              <span className="material-symbols-outlined text-[18px]">tips_and_updates</span>
+            </span>
+          </div>
+          <div className="mt-4 flex items-baseline gap-1">
+            <span className="text-[40px] font-extrabold text-[#825100] leading-none">{findingSummary.opportunities}</span>
+            <span className="text-[14px] font-semibold text-[#825100]">instances</span>
+          </div>
+          <div className="mt-2 text-[#727785] text-[12px]">Possible improvements, not definite errors</div>
+        </div>
+
+        {/* Tile 6: Total Findings */}
+        <div className="bg-[#f2f3ff] p-6 rounded-[14px] flex flex-col justify-between shadow-xs">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-[#727785]">Total Findings</span>
+            <span className="w-8 h-8 rounded-full bg-[#eaddff] text-[#5b3c88] flex items-center justify-center">
+              <span className="material-symbols-outlined text-[18px]">calculate</span>
+            </span>
+          </div>
+          <div className="mt-4 flex items-baseline gap-1">
+            <span className="text-[40px] font-extrabold text-[#5b3c88] leading-none">{findingSummary.totalFindings}</span>
+            <span className="text-[14px] font-semibold text-[#5b3c88]">instances</span>
+          </div>
+          <div className="mt-2 text-[#727785] text-[12px]">Confirmed + verification + opportunities</div>
+        </div>
       </section>
 
       {/* Large White Main Result Card */}
@@ -932,7 +962,7 @@ export const CatalogHealthView: React.FC<CatalogHealthViewProps> = ({
           <div className="rounded-xl border border-[#c2c6d6]/40 bg-[#faf8ff] p-4 text-[12px] text-[#424754]">
             <div className="font-bold text-[#131b2e]">How the score works</div>
             <p className="mt-1 font-semibold text-[#131b2e]">
-              {auditData.healthScore}/100 is a weighted quality score, not a pass rate.
+              {auditData.healthScore}/100 is a storefront quality score, not a Merchant Center approval score.
             </p>
             <p className="mt-1">
               {auditData.scoring?.formula?.perProduct ?? 'Per product: sum(field score x field weight) / sum(weights of the fields assessed for that product).'}{' '}
@@ -949,7 +979,7 @@ export const CatalogHealthView: React.FC<CatalogHealthViewProps> = ({
               {titleQualityScore != null && incompleteTitleCount != null
                 ? `Example from this scan: title quality is ${titleQualityScore}% while ${incompleteTitleCount} products carry a "may be missing useful detail" opportunity. Incomplete titles receive partial credit, so a quality score and a finding count measure different things.`
                 : 'Attribute scores measure field quality, while finding counts measure how many reviewed products matched a rule.'}{' '}
-              Each bar names the field actually observed. This is not a pass-rate, Google-category score, resolution check, or Merchant Center verdict.
+              The score is calculated from product fields, not issue-instance counts. Each bar names the field actually observed. This is not a pass rate, Google-category score, image-resolution check, or Merchant Center verdict.
             </p>
           </div>
 
@@ -994,8 +1024,22 @@ export const CatalogHealthView: React.FC<CatalogHealthViewProps> = ({
               All findings ({findingSummary.totalFindings})
             </h2>
             <span className="text-[12px] text-[#424754]">
-              {findingSummary.confirmedIssues} confirmed + {findingSummary.verificationItems} to verify + {findingSummary.opportunities} opportunities · one product can appear in several findings
+              Total findings: {findingSummary.totalFindings} = {findingSummary.verificationItems} verification items + {findingSummary.opportunities} optimization opportunities + {findingSummary.confirmedIssues} confirmed issues · one product can appear in several findings
             </span>
+          </div>
+
+          <div className="rounded-xl border border-[#c2c6d6]/40 bg-[#faf8ff] p-4 text-[12px] text-[#424754]">
+            <div className="font-bold text-[#131b2e]">Optimization calculation</div>
+            {opportunityIssuesList.length > 0 ? (
+              <div className="mt-1 flex flex-col gap-1">
+                {opportunityIssuesList.map((issue) => (
+                  <span key={`calc-${issue.id}`}>{issue.count} {issue.title.toLowerCase()} opportunities</span>
+                ))}
+                <span className="font-bold text-[#131b2e]">= {findingSummary.opportunities} optimization opportunities</span>
+              </div>
+            ) : (
+              <span className="mt-1 block">0 optimization opportunities</span>
+            )}
           </div>
 
           {[
@@ -1021,7 +1065,6 @@ export const CatalogHealthView: React.FC<CatalogHealthViewProps> = ({
               list: opportunityIssuesList,
             },
           ]
-            .filter((group) => group.list.length > 0)
             .map((group) => (
               <div key={group.key} className="flex flex-col gap-2">
                 <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-0.5">
@@ -1031,6 +1074,9 @@ export const CatalogHealthView: React.FC<CatalogHealthViewProps> = ({
                   <span className="text-[11px] text-[#727785]">{group.caption}</span>
                 </div>
 
+                {group.list.length === 0 ? (
+                  <div className="rounded-[14px] bg-[#f2f3ff] p-4 text-[12px] text-[#727785]">0 findings in this group</div>
+                ) : null}
                 {group.list.map((issue) => {
                   const badgeStyle = {
                     HIGH: 'bg-[#ffdad6] text-[#93000a]',
@@ -1174,7 +1220,7 @@ export const CatalogHealthView: React.FC<CatalogHealthViewProps> = ({
 
                   <div className="flex items-center justify-between pt-2 border-t border-[#c2c6d6]/20">
                     <span className={`text-[12px] font-bold ${liftTextColor}`}>
-                      {step.estimatedLift}
+                      {step.products != null ? `${step.products} ${step.unit || 'products'}` : step.estimatedLift}
                     </span>
                     <button
                       onClick={() => {

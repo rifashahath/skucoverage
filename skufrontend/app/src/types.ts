@@ -41,6 +41,11 @@ export interface AffectedItem {
   sku: string;
   productTitle: string;
   imageUrl?: string;
+  productUrl?: string | null;
+  variant?: string;
+  gtinFound?: boolean;
+  dataSourceChecked?: string;
+  verificationStatus?: string;
   issueDetail: string;
   suggestedFix: string;
   observed?: string;
@@ -66,6 +71,8 @@ export interface ActionPlanStep {
   title: string;
   description: string;
   estimatedLift: string;
+  products?: number | null;
+  unit?: string | null;
   liftColor: 'error' | 'secondary' | 'primary';
 }
 
@@ -105,5 +112,6 @@ export interface StoreAuditData {
     dimensions: string[];
     weights: Record<string, number>;
     note: string;
+    formula?: { perProduct: string; overall: string; unassessed: string };
   } | null;
 }
