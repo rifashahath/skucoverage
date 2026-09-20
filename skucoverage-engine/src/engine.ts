@@ -10,6 +10,9 @@ import type {
 	Issue,
 	IssueClass,
 	Priority,
+	Confidence,
+	FindingStatus,
+	EvidenceSource,
 	Product,
 } from "./types"
 import { GENERIC_CATEGORIES, TAXONOMY } from "./taxonomy"
@@ -58,16 +61,19 @@ const MAX_AFFECTED = 200
 const text = (v: unknown): string =>
 	typeof v === "string" ? v.trim() : v == null ? "" : String(v).trim()
 
-const round = (n: number, dp = 0): number => {
+function round(n: number | null, dp = 0): number | null {
+	if (n === null) return null
 	const f = 10 ** dp
 	return Math.round(n * f) / f
 }
 
 const pct = (part: number, total: number): number =>
-	total === 0 ? 0 : round((part / total) * 100, 1)
+	total === 0 ? 0 : Math.round((part / total) * 1000) / 10
 
-const avg = (nums: number[]): number =>
-	nums.length === 0 ? 0 : nums.reduce((a, b) => a + b, 0) / nums.length
+const avg = (nums: Array<number | null>): number | null => {
+	const assessed = nums.filter((n): n is number => n !== null)
+	return assessed.length === 0 ? null : assessed.reduce((a, b) => a + b, 0) / assessed.length
+}
 
 const num = (v: unknown): number => {
 	const n = typeof v === "number" ? v : Number(v)
@@ -103,8 +109,7 @@ export function checkTitle(product: Product): TitleCheck {
 	if (length === 0) return { score: 0, length, state: "missing" }
 	if (length < 20) return { score: 25, length, state: "too_short" }
 	if (length > 150) return { score: 50, length, state: "too_long" }
-	if (length < 40 || !hasProductType(title))
-		return { score: 60, length, state: "incomplete" }
+	if (length < 40) return { score: 60, length, state: "incomplete" }
 	return { score: 100, length, state: "complete" }
 }
 
@@ -124,8 +129,8 @@ export function checkDescription(product: Product): DescriptionCheck {
 }
 
 export type GtinCheck = {
-	score: number
-	state: "missing" | "invalid" | "exempt" | "present"
+	score: number | null
+	state: "missing_unverified" | "invalid" | "exempt" | "present"
 }
 
 export function checkGtin(product: Product): GtinCheck {
@@ -133,7 +138,7 @@ export function checkGtin(product: Product): GtinCheck {
 	if (gtin === "") {
 		// Handmade / one-of-a-kind products can declare no manufacturer identifier.
 		if (product.identifierExists === "no") return { score: 100, state: "exempt" }
-		return { score: 0, state: "missing" }
+		return { score: null, state: "missing_unverified" }
 	}
 	// GTIN-8, UPC-A (12), EAN-13 and GTIN-14 are the only valid GTIN lengths.
 	// 9, 10 and 11 digit numbers are not GTINs even though they are numeric.
@@ -229,7 +234,7 @@ export function checkVariants(product: Product): VariantCheck {
 		return { score: 0, count, state: "variants_as_products" }
 	if (titles.length > 1 && new Set(titles).size !== titles.length)
 		return { score: 0, count, state: "duplicate_variant_titles" }
-	if (count < 1) return { score: 50, count, state: "no_variants" }
+	if (count < 1) return { score: 100, count, state: "no_variants" }
 	return { score: 100, count, state: "good" }
 }
 
@@ -244,6 +249,7 @@ export type ProductScore = {
 	hasBrand: boolean
 	hasSku: boolean
 	productScore: number
+	productTitle: string
 	complete: boolean
 }
 
@@ -263,10 +269,11 @@ export const WEIGHTS = {
 	variants: 5,
 } as const
 
-function weighted(pairs: Array<[number, number]>): number {
+function weighted(pairs: Array<[number | null, number]>): number {
+	pairs = pairs.filter(([score]) => score !== null)
 	const totalWeight = pairs.reduce((acc, [, w]) => acc + w, 0)
 	if (totalWeight === 0) return 0
-	return pairs.reduce((acc, [score, w]) => acc + score * w, 0) / totalWeight
+	return pairs.reduce((acc, [score, w]) => acc + (score ?? 0) * w, 0) / totalWeight
 }
 
 export function scoreProduct(product: Product): ProductScore {
@@ -299,7 +306,8 @@ export function scoreProduct(product: Product): ProductScore {
 		variants,
 		hasBrand: text(product.brand) !== "",
 		hasSku: text(product.sku) !== "",
-		productScore,
+		productScore: productScore ?? 0,
+		productTitle: text(product.title),
 		complete:
 			title.score === 100 &&
 			description.score === 100 &&
@@ -314,12 +322,44 @@ export function scoreProduct(product: Product): ProductScore {
 /* audit_full_catalog                                                  */
 /* ------------------------------------------------------------------ */
 
+function issueEvidence(type: string, score: ProductScore): { observed: string; expected: string } {
+	const observedByType: Record<string, string> = {
+		missing_title: "Title is empty in the public storefront snapshot",
+		gtin_status_unverified: "No barcode is exposed on the first public storefront variant",
+		invalid_gtin: "The public barcode fails a supported-length or Modulo-10 format check",
+		no_images: "0 product images in the public storefront snapshot",
+		title_too_short: `Title length: ${score.title.length} characters`,
+		incomplete_title: `Title length: ${score.title.length} characters`,
+		title_too_long: `Title length: ${score.title.length} characters`,
+		missing_description: "Description is empty in the public storefront snapshot",
+		incomplete_description: `Description length: ${score.description.length} characters`,
+		variants_as_products: "Input marks variants as separate products",
+		duplicate_variant_titles: `${score.variants.count} variants include duplicate titles`,
+		missing_brand: "Vendor/brand is empty in the public storefront snapshot",
+		missing_sku: "First public storefront variant has no SKU",
+		missing_category: "Storefront product_type is empty",
+		generic_category: `Storefront product_type matched a generic label (depth ${score.category.depth})`,
+		duplicate_category_levels: `Storefront product_type repeats a level (depth ${score.category.depth})`,
+		too_few_images: `${score.images.count} product image${score.images.count === 1 ? "" : "s"} in the public storefront snapshot`,
+	}
+	return {
+		observed: observedByType[type] ?? (score.productTitle || "Field value observed in public storefront snapshot"),
+		expected: type === "gtin_status_unverified"
+			? "Verify in Shopify Admin or Merchant Center whether a manufacturer identifier exists and is required"
+			: "Review this observation against the rule description before changing product data",
+	}
+}
+
 type IssueSpec = {
 	type: string
 	classification: IssueClass
 	priority: Priority
 	impact: string
 	match: (s: ProductScore) => boolean
+	status?: FindingStatus
+	confidence?: Confidence
+	source?: EvidenceSource
+	evidence?: (s: ProductScore) => { observed: string; expected: string }
 	recommendation: (count: number, percent: number) => string
 }
 
@@ -334,13 +374,15 @@ const ISSUE_SPECS: IssueSpec[] = [
 			`Add a title to ${c} product${c === 1 ? "" : "s"} (${p}% of catalog) - they cannot be sold or indexed without one`,
 	},
 	{
-		type: "missing_gtin",
+		type: "gtin_status_unverified",
 		classification: "data_warning",
-		priority: "high",
-		impact: IMPACT.gtin,
-		match: (s) => s.gtin.state === "missing",
+		priority: "low",
+		impact: "No barcode was exposed by the public storefront; whether one is required cannot be determined here",
+		match: (s) => s.gtin.state === "missing_unverified",
+		status: "needs_verification",
+		confidence: "high",
 		recommendation: (c, p) =>
-			`Review identifiers on ${c} product${c === 1 ? "" : "s"} (${p}% of catalog). Add a genuine manufacturer GTIN when one exists; otherwise confirm identifier_exists rules in Merchant Center`,
+			`Verify identifier requirements for ${c} product${c === 1 ? "" : "s"} (${p}% of this storefront snapshot). A missing public barcode is not itself an error.`,
 	},
 	{
 		type: "invalid_gtin",
@@ -348,6 +390,8 @@ const ISSUE_SPECS: IssueSpec[] = [
 		priority: "high",
 		impact: IMPACT.gtin,
 		match: (s) => s.gtin.state === "invalid",
+		status: "observed",
+		confidence: "high",
 		recommendation: (c) =>
 			`Review ${c} malformed GTIN value${c === 1 ? "" : "s"} - the format or Modulo-10 check digit is invalid. A passing check digit proves format only, not GS1 ownership; verify it with the supplier or Verified by GS1.`,
 	},
@@ -366,6 +410,8 @@ const ISSUE_SPECS: IssueSpec[] = [
 		priority: "high",
 		impact: IMPACT.title,
 		match: (s) => s.title.state === "too_short",
+		status: "heuristic",
+		confidence: "medium",
 		recommendation: (c) =>
 			`Review ${c} title${c === 1 ? "" : "s"} under 20 characters - this is a quality heuristic, not a universal disapproval rule`,
 	},
@@ -375,6 +421,8 @@ const ISSUE_SPECS: IssueSpec[] = [
 		priority: "medium",
 		impact: IMPACT.title,
 		match: (s) => s.title.state === "incomplete",
+		status: "heuristic",
+		confidence: "medium",
 		recommendation: (c) =>
 			`Review ${c} product title${c === 1 ? "" : "s"} for product type and useful attributes; length is a quality heuristic`,
 	},
@@ -384,6 +432,8 @@ const ISSUE_SPECS: IssueSpec[] = [
 		priority: "low",
 		impact: IMPACT.title,
 		match: (s) => s.title.state === "too_long",
+		status: "heuristic",
+		confidence: "medium",
 		recommendation: (c) =>
 			`Shorten ${c} very long title${c === 1 ? "" : "s"} - they get truncated in search results`,
 	},
@@ -402,6 +452,8 @@ const ISSUE_SPECS: IssueSpec[] = [
 		priority: "medium",
 		impact: IMPACT.description,
 		match: (s) => s.description.state === "incomplete",
+		status: "heuristic",
+		confidence: "medium",
 		recommendation: (c) =>
 			`Review ${c} product description${c === 1 ? "" : "s"} for useful material, size, color and use-case details; length is a quality heuristic`,
 	},
@@ -429,6 +481,8 @@ const ISSUE_SPECS: IssueSpec[] = [
 		priority: "medium",
 		impact: IMPACT.brand,
 		match: (s) => !s.hasBrand,
+		status: "heuristic",
+		confidence: "medium",
 		recommendation: (c) =>
 			`Set a brand/vendor value on ${c} product${c === 1 ? "" : "s"} so AI shopping agents can match them`,
 	},
@@ -446,6 +500,8 @@ const ISSUE_SPECS: IssueSpec[] = [
 		priority: "low",
 		impact: IMPACT.category,
 		match: (s) => s.category.state === "missing",
+		status: "heuristic",
+		confidence: "medium",
 		recommendation: (c) =>
 			`Assign Shopify Standard Product Taxonomy categories to ${c} product${c === 1 ? "" : "s"}`,
 	},
@@ -455,6 +511,8 @@ const ISSUE_SPECS: IssueSpec[] = [
 		priority: "low",
 		impact: IMPACT.category,
 		match: (s) => s.category.state === "generic",
+		status: "heuristic",
+		confidence: "medium",
 		recommendation: (c) =>
 			`Replace broad categories on ${c} product${c === 1 ? "" : "s"} with a full taxonomy path`,
 	},
@@ -473,6 +531,8 @@ const ISSUE_SPECS: IssueSpec[] = [
 		priority: "low",
 		impact: IMPACT.images,
 		match: (s) => s.images.state === "too_few",
+		status: "heuristic",
+		confidence: "medium",
 		recommendation: (c) =>
 			`Add 2-3 more images to ${c} product${c === 1 ? "" : "s"} that only have 1-2`,
 	},
@@ -495,7 +555,7 @@ export function auditFullCatalog(products: Product[]) {
 				},
 				issues: [] as Issue[],
 				issueGroups: { eligibilityBlockers: [], dataWarnings: [], growthOpportunities: [] },
-				scoring: { dimensions: ["titles", "descriptions", "gtins", "categories", "images", "variants"], weights: WEIGHTS, note: "Quality heuristics; not a Merchant Center eligibility verdict" },
+				scoring: { dimensions: ["titles", "descriptions", "gtins", "categories", "images", "variants"], weights: WEIGHTS, note: "Scores include only fields the source can assess; unavailable fields are excluded, not treated as zero or 100." },
 				coverage: { assessedProducts: 0, source: "provided_product_snapshot", authoritative: false, included: ["product fields supplied to the engine"], excluded: ["Merchant Center diagnostics", "GS1 company assignment verification", "unpublished or inaccessible products"] },
 				recommendations: ["No products to audit - connect a store with products"],
 				nextSteps: ["Import products, then re-run the audit"],
@@ -512,6 +572,7 @@ export function auditFullCatalog(products: Product[]) {
 		const affected = scores.filter(spec.match).map((s) => s.id)
 		if (affected.length === 0) continue
 		const percent = pct(affected.length, total)
+		const affectedScores = scores.filter(spec.match)
 		issues.push({
 			type: spec.type,
 			classification: spec.classification,
@@ -520,6 +581,13 @@ export function auditFullCatalog(products: Product[]) {
 			priority: spec.priority,
 			impact: spec.impact,
 			percentOfCatalog: percent,
+			status: spec.status ?? (spec.classification === "growth_opportunity" ? "heuristic" : "observed"),
+			confidence: spec.confidence ?? (spec.classification === "growth_opportunity" ? "medium" : "high"),
+			source: spec.source ?? "public_storefront",
+			evidence: affectedScores.slice(0, MAX_AFFECTED).map((score) => {
+				const evidence = spec.evidence?.(score) ?? issueEvidence(spec.type, score)
+				return { productId: score.id, ...evidence }
+			}),
 		})
 		recommendations.push({
 			priority: spec.priority,
@@ -537,16 +605,23 @@ export function auditFullCatalog(products: Product[]) {
 			PRIORITY_RANK[a.priority] - PRIORITY_RANK[b.priority] || b.count - a.count,
 	)
 
-	const scoreBreakdown = {
-		titles: round(avg(scores.map((s) => s.title.score))),
-		descriptions: round(avg(scores.map((s) => s.description.score))),
-		gtins: round(avg(scores.map((s) => s.gtin.score))),
-		categories: round(avg(scores.map((s) => s.category.score))),
-		images: round(avg(scores.map((s) => s.images.score))),
-		variants: round(avg(scores.map((s) => s.variants.score))),
+	const dimensionScores = {
+		titles: scores.map((s) => s.title.score),
+		descriptions: scores.map((s) => s.description.score),
+		gtins: scores.map((s) => s.gtin.score),
+		categories: scores.map((s) => s.category.score),
+		images: scores.map((s) => s.images.score),
+		variants: scores.map((s) => s.variants.score),
 	}
+	const scoreBreakdown = Object.fromEntries(Object.entries(dimensionScores).map(([name, values]) => [name, round(avg(values))]))
+	const assessmentBreakdown = Object.fromEntries(Object.entries(dimensionScores).map(([name, values]) => [name, {
+		status: values.some((value) => value !== null) ? "assessed" : "not_assessed",
+		assessedProducts: values.filter((value) => value !== null).length,
+		unavailableProducts: values.filter((value) => value === null).length,
+		source: "public_storefront",
+	}]))
 
-	const score = round(avg(scores.map((s) => s.productScore)))
+	const score = round(avg(scores.map((s) => s.productScore))) ?? 0
 	const top = issues.slice(0, 3)
 
 	return {
@@ -554,13 +629,14 @@ export function auditFullCatalog(products: Product[]) {
 			totalProducts: total,
 			score,
 			scoreBreakdown,
+			assessmentBreakdown,
 			issues,
 			issueGroups: {
 				eligibilityBlockers: issues.filter((issue) => issue.classification === "eligibility_blocker"),
 				dataWarnings: issues.filter((issue) => issue.classification === "data_warning"),
 				growthOpportunities: issues.filter((issue) => issue.classification === "growth_opportunity"),
 			},
-			scoring: { dimensions: ["titles", "descriptions", "gtins", "categories", "images", "variants"], weights: WEIGHTS, note: "Quality heuristics; not a Merchant Center eligibility verdict" },
+			scoring: { dimensions: ["titles", "descriptions", "gtins", "categories", "images", "variants"], weights: WEIGHTS, note: "Scores include only fields the source can assess; unavailable fields are excluded, not treated as zero or 100." },
 			coverage: { assessedProducts: total, source: "provided_product_snapshot", authoritative: false, included: ["product fields supplied to the engine"], excluded: ["Merchant Center diagnostics", "GS1 company assignment verification", "unpublished or inaccessible products"] },
 			recommendations: recommendations.slice(0, 5).map((r) => r.text),
 			nextSteps: [
@@ -804,7 +880,7 @@ export function seoAuditProducts(products: Product[]) {
 	)
 
 	return {
-		seoScore: round(avg(perProduct)),
+		seoScore: round(avg(perProduct)) ?? 0,
 		issues,
 		schemaData: {
 			hasProductSchema: products.length > 0 && productsWithSchema === products.length,
@@ -835,7 +911,7 @@ export function weeklyDiff(currentAudit: any, previousAudit: any) {
 	const previous = asAudit(previousAudit)
 	const currentScore = num(current.score)
 	const previousScore = num(previous.score)
-	const delta = round(currentScore - previousScore, 1)
+	const delta = round(currentScore - previousScore, 1) ?? 0
 
 	const currentIssues = issueMap(current)
 	const previousIssues = issueMap(previous)
@@ -926,7 +1002,7 @@ export function aiReadiness(products: Product[]) {
 	const completeness = products.map(
 		(p) => (FIELDS.filter(([, ok]) => ok(p)).length / FIELDS.length) * 100,
 	)
-	const aiReadinessScore = round(avg(completeness))
+	const aiReadinessScore = round(avg(completeness)) ?? 0
 
 	const FINDING_SPECS: Array<{
 		field: string
