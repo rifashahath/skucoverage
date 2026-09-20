@@ -58,17 +58,29 @@ export const InspectIssueModal: React.FC<InspectIssueModalProps> = ({
           <div className="flex flex-col gap-1.5">
             <div className="flex items-center gap-2">
               <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-extrabold uppercase ${badgeStyle}`}>
-                {issue.severity} Priority
+                {issue.status === 'needs_verification'
+                  ? 'Needs verification'
+                  : issue.status === 'heuristic'
+                    ? `Heuristic · ${issue.severity}`
+                    : `${issue.severity} Priority`}
               </span>
               <span className="text-[12px] font-bold text-[#727785]">
-                {issue.count} SKUs affected
+                {issue.count} SKUs {issue.status === 'needs_verification' ? 'to verify' : issue.status === 'heuristic' ? 'flagged' : 'affected'}
               </span>
             </div>
             <h2 className="text-[20px] sm:text-[22px] font-extrabold text-[#131b2e]">
               {issue.title}
             </h2>
+            {issue.rule ? (
+              <p className="text-[13px] text-[#131b2e] font-medium leading-relaxed">
+                Rule: {issue.rule}
+              </p>
+            ) : null}
             <p className="text-[13px] text-[#424754] leading-relaxed">
               {issue.description}
+            </p>
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-[#727785]">
+              {issue.source === 'public_storefront' ? 'Public storefront' : issue.source} · {issue.confidence ?? 'medium'} confidence
             </p>
           </div>
 
@@ -115,8 +127,13 @@ export const InspectIssueModal: React.FC<InspectIssueModalProps> = ({
                       SKU: {item.sku}
                     </span>
                     <span className="text-[12px] text-[#ba1a1a] mt-0.5">
-                      {item.issueDetail}
+                      Observed: {item.issueDetail}
                     </span>
+                    {item.expected ? (
+                      <span className="text-[12px] text-[#424754] mt-0.5">
+                        Expected: {item.expected}
+                      </span>
+                    ) : null}
                   </div>
                 </div>
 
@@ -132,7 +149,7 @@ export const InspectIssueModal: React.FC<InspectIssueModalProps> = ({
                       className="inline-flex items-center gap-1 text-[12px] font-bold text-[#0058be] bg-white hover:bg-[#0058be] hover:text-white px-3 py-1.5 rounded-full border border-[#0058be]/30 transition-all cursor-pointer shadow-xs"
                     >
                       <span className="material-symbols-outlined text-[15px]">auto_fix_high</span>
-                      <span>Fix SKU</span>
+                      <span>Add to fix list</span>
                     </button>
                   )}
                 </div>
@@ -144,7 +161,7 @@ export const InspectIssueModal: React.FC<InspectIssueModalProps> = ({
         {/* Footer Actions */}
         <div className="pt-4 border-t border-[#eaedff] flex flex-col sm:flex-row items-center justify-between gap-3">
           <span className="text-[12px] text-[#727785]">
-            Fixes write directly to Shopify product metafields.
+            Adds products to your fix-list export. Nothing is written to Shopify here.
           </span>
           <div className="flex items-center gap-2 w-full sm:w-auto">
             <button
@@ -159,7 +176,7 @@ export const InspectIssueModal: React.FC<InspectIssueModalProps> = ({
               className="flex-1 sm:flex-initial px-5 py-2 rounded-full bg-[#0058be] hover:bg-[#2170e4] text-white text-[13px] font-bold shadow-sm transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
             >
               <span className="material-symbols-outlined text-[16px]">done_all</span>
-              <span>{fixingAll ? 'Fixing...' : 'Batch Fix All in Group'}</span>
+              <span>{fixingAll ? 'Adding...' : 'Add all to fix list'}</span>
             </button>
           </div>
         </div>

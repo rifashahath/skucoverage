@@ -150,11 +150,11 @@ export const CatalogHealthView: React.FC<CatalogHealthViewProps> = ({
               </div>
             </div>
 
-            {/* Card 3: Detected Issues */}
+            {/* Card 3: Confirmed Issues */}
             <div className="group relative bg-[#f2f3ff] rounded-[14px] p-6 shadow-xs hover:shadow-md transition-all">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-[11px] font-bold uppercase tracking-wider text-[#727785]">
-                  Issues
+                  Confirmed issues
                 </span>
                 <div className="w-8 h-8 rounded-full bg-[#eaedff] flex items-center justify-center text-[#727785] group-hover:text-[#0058be] transition-colors">
                   <span className="material-symbols-outlined text-[18px]">rule</span>
@@ -162,19 +162,19 @@ export const CatalogHealthView: React.FC<CatalogHealthViewProps> = ({
               </div>
               <div className="flex items-baseline gap-1">
                 <span className="text-[40px] text-[#131b2e] font-extrabold leading-none">0</span>
-                <span className="text-[11px] text-[#727785] font-semibold">detected</span>
+                <span className="text-[11px] text-[#727785] font-semibold">confirmed</span>
               </div>
               <div className="mt-4 flex items-center gap-1 text-[#727785] text-[12px]">
                 <span className="material-symbols-outlined text-[15px]">check_circle</span>
-                <span>No active audit discrepancies</span>
+                <span>No confirmed issues yet</span>
               </div>
             </div>
 
-            {/* Card 4: High Priority Issues */}
+            {/* Card 4: Needs Verification */}
             <div className="group relative bg-[#f2f3ff] rounded-[14px] p-6 shadow-xs hover:shadow-md transition-all">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-[11px] font-bold uppercase tracking-wider text-[#727785]">
-                  High-confidence warnings
+                  Needs verification
                 </span>
                 <div className="w-8 h-8 rounded-full bg-[#eaedff] flex items-center justify-center text-[#727785] group-hover:text-[#ba1a1a] transition-colors">
                   <span className="material-symbols-outlined text-[18px]">warning</span>
@@ -182,11 +182,11 @@ export const CatalogHealthView: React.FC<CatalogHealthViewProps> = ({
               </div>
               <div className="flex items-baseline gap-1">
                 <span className="text-[40px] text-[#131b2e] font-extrabold leading-none">0</span>
-                <span className="text-[11px] text-[#727785] font-semibold">warnings</span>
+                <span className="text-[11px] text-[#727785] font-semibold">to verify</span>
               </div>
               <div className="mt-4 flex items-center gap-1 text-[#727785] text-[12px]">
                 <span className="material-symbols-outlined text-[15px]">shield</span>
-                <span>No storefront warnings found</span>
+                <span>Nothing awaiting verification</span>
               </div>
             </div>
           </div>
@@ -619,6 +619,18 @@ export const CatalogHealthView: React.FC<CatalogHealthViewProps> = ({
      ========================================================================================= */
   const titleQualityScore = auditData.attributeBreakdown.find((attr) => attr.name === 'Titles')?.score;
   const incompleteTitleCount = auditData.issues.find((issue) => issue.id.includes('incomplete_title'))?.count;
+  const gtinAttribute = auditData.attributeBreakdown.find((attr) => attr.name === 'GTIN / barcode format');
+  // The bucket split the report displays; totals always reconcile with the list.
+  const findingSummary = auditData.findingSummary ?? {
+    confirmedIssues: auditData.detectedIssuesCount,
+    verificationItems: 0,
+    opportunities: 0,
+    totalFindings: auditData.detectedIssuesCount,
+    highPriorityConfirmed: auditData.highPriorityCount,
+  };
+  const confirmedIssuesList = auditData.issues.filter((issue) => (issue.status || 'observed') === 'observed');
+  const verificationIssuesList = auditData.issues.filter((issue) => issue.status === 'needs_verification');
+  const opportunityIssuesList = auditData.issues.filter((issue) => issue.status === 'heuristic');
 
   return (
     <div className="flex flex-col w-full gap-6">
@@ -813,11 +825,11 @@ export const CatalogHealthView: React.FC<CatalogHealthViewProps> = ({
           </div>
         </div>
 
-        {/* Tile 3: Detected Issues */}
+        {/* Tile 3: Confirmed Issues */}
         <div className="bg-[#f2f3ff] p-6 rounded-[14px] flex flex-col justify-between shadow-xs">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold uppercase tracking-wider text-[#727785]">
-              Issue Instances
+              Confirmed Issues
             </span>
             <span className="w-8 h-8 rounded-full bg-[#ffdad6] flex items-center justify-center text-[#ba1a1a]">
               <span className="material-symbols-outlined text-[18px]">bug_report</span>
@@ -825,34 +837,33 @@ export const CatalogHealthView: React.FC<CatalogHealthViewProps> = ({
           </div>
           <div className="mt-4 flex items-baseline gap-1">
             <span className="text-[40px] font-extrabold text-[#ba1a1a] leading-none">
-              {auditData.detectedIssuesCount}
+              {findingSummary.confirmedIssues}
             </span>
-            <span className="text-[14px] font-semibold text-[#ba1a1a]">instances</span>
+            <span className="text-[14px] font-semibold text-[#ba1a1a]">confirmed</span>
           </div>
           <div className="mt-2 flex items-center gap-1 text-[#727785] text-[12px]">
-            <span>Across {auditData.issues.length} issue {auditData.issues.length === 1 ? 'category' : 'categories'}</span>
+            <span>{findingSummary.highPriorityConfirmed} high priority · observed in the storefront snapshot</span>
           </div>
         </div>
 
-        {/* Tile 4: High Priority */}
+        {/* Tile 4: Needs Verification */}
         <div className="bg-[#f2f3ff] p-6 rounded-[14px] flex flex-col justify-between shadow-xs">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold uppercase tracking-wider text-[#727785]">
-              High Priority
+              Needs Verification
             </span>
-            <span className="w-8 h-8 rounded-full bg-[#ba1a1a] text-white flex items-center justify-center">
-              <span className="material-symbols-outlined text-[18px]">priority_high</span>
+            <span className="w-8 h-8 rounded-full bg-[#d8e2ff] text-[#004395] flex items-center justify-center">
+              <span className="material-symbols-outlined text-[18px]">fact_check</span>
             </span>
           </div>
           <div className="mt-4 flex items-baseline gap-1">
-            <span className="text-[40px] font-extrabold text-[#ba1a1a] leading-none">
-              {auditData.highPriorityCount}
+            <span className="text-[40px] font-extrabold text-[#004395] leading-none">
+              {findingSummary.verificationItems}
             </span>
-            <span className="text-[14px] font-semibold text-[#ba1a1a]">warnings</span>
+            <span className="text-[14px] font-semibold text-[#004395]">to verify</span>
           </div>
-          <div className="mt-2 flex items-center gap-1 text-[#ba1a1a] text-[12px]">
-            <span className="material-symbols-outlined text-[16px]">warning</span>
-            <span>Observed high-confidence problems only; verification items are separate</span>
+          <div className="mt-2 flex items-center gap-1 text-[#727785] text-[12px]">
+            <span>Not evidence of a problem; the public storefront cannot confirm these</span>
           </div>
         </div>
       </section>
@@ -920,13 +931,24 @@ export const CatalogHealthView: React.FC<CatalogHealthViewProps> = ({
 
           <div className="rounded-xl border border-[#c2c6d6]/40 bg-[#faf8ff] p-4 text-[12px] text-[#424754]">
             <div className="font-bold text-[#131b2e]">How the score works</div>
+            <p className="mt-1 font-semibold text-[#131b2e]">
+              {auditData.healthScore}/100 is a weighted quality score, not a pass rate.
+            </p>
             <p className="mt-1">
-              Each product is scored only on fields this source can assess. Unavailable fields are excluded, never shown as 0% or 100%. Current weights: title 20%, description 10%, GTIN 30%, product type 15%, image count 20%, variants 5%.
+              {auditData.scoring?.formula?.perProduct ?? 'Per product: sum(field score x field weight) / sum(weights of the fields assessed for that product).'}{' '}
+              {auditData.scoring?.formula?.overall ?? 'The overall score is the average of the per-product scores across reviewed products.'}{' '}
+              Weights: title 20%, description 10%, GTIN 30%, product type 15%, image count 20%, variants 5%.
+            </p>
+            <p className="mt-1">
+              {auditData.scoring?.formula?.unassessed ?? 'A field that cannot be assessed for a product is dropped and the remaining weights are rescaled to 100%, so missing data never counts as 0 or 100.'}
+              {gtinAttribute?.score == null && gtinAttribute?.unavailableProducts != null
+                ? ` In this scan, GTIN / barcode format could not be assessed for ${gtinAttribute.unavailableProducts} of ${auditData.productsCount} products, so its 30% weight was redistributed across the assessed fields.`
+                : ''}
             </p>
             <p className="mt-1">
               {titleQualityScore != null && incompleteTitleCount != null
-                ? `Example from this scan: title quality is ${titleQualityScore}% while ${incompleteTitleCount} products carry an incomplete-title warning. Incomplete titles receive partial credit, so these values measure different things.`
-                : 'Attribute scores measure field quality, while warning counts measure how many reviewed products matched a rule.'}{' '}
+                ? `Example from this scan: title quality is ${titleQualityScore}% while ${incompleteTitleCount} products carry a "may be missing useful detail" opportunity. Incomplete titles receive partial credit, so a quality score and a finding count measure different things.`
+                : 'Attribute scores measure field quality, while finding counts measure how many reviewed products matched a rule.'}{' '}
               Each bar names the field actually observed. This is not a pass-rate, Google-category score, resolution check, or Merchant Center verdict.
             </p>
           </div>
@@ -965,66 +987,109 @@ export const CatalogHealthView: React.FC<CatalogHealthViewProps> = ({
           </div>
         </section>
 
-        {/* Detected Catalog Issues Section */}
+        {/* Findings Section: grouped so the headline total reconciles visibly */}
         <section className="flex flex-col gap-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
             <h2 className="text-[18px] font-bold text-[#131b2e]">
-              Detected Issue Instances ({auditData.detectedIssuesCount})
+              All findings ({findingSummary.totalFindings})
             </h2>
             <span className="text-[12px] text-[#424754]">
-              Prioritized by storefront-data confidence and review urgency
+              {findingSummary.confirmedIssues} confirmed + {findingSummary.verificationItems} to verify + {findingSummary.opportunities} opportunities · one product can appear in several findings
             </span>
           </div>
 
-          <div className="flex flex-col gap-2">
-            {auditData.issues.map((issue) => {
-              const badgeStyle = {
-                HIGH: 'bg-[#ffdad6] text-[#93000a]',
-                MEDIUM: 'bg-[#ffddb8] text-[#653e00]',
-                LOW: 'bg-[#d8e2ff] text-[#004395]',
-              }[issue.severity];
-
-              const countColor = {
-                HIGH: 'text-[#ba1a1a]',
-                MEDIUM: 'text-[#825100]',
-                LOW: 'text-[#0058be]',
-              }[issue.severity];
-
-              return (
-                <div
-                  key={issue.id}
-                  className="bg-[#f2f3ff] p-4 rounded-[14px] flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-[#eaedff] transition-colors"
-                >
-                  <div className="flex items-center gap-4">
-                    <span className={`px-3 py-1 rounded-full text-[11px] font-bold uppercase shrink-0 ${badgeStyle}`}>
-                      {issue.status === 'needs_verification' ? 'VERIFY' : issue.status === 'heuristic' ? 'HEURISTIC' : issue.severity}
-                    </span>
-                    <div className="flex flex-col">
-                      <span className="text-[15px] text-[#131b2e] font-bold">{issue.title}</span>
-                      <span className="text-[12px] text-[#424754]">{issue.description}</span>
-                      <span className="mt-1 text-[10px] font-semibold uppercase tracking-wide text-[#727785]">
-                        {issue.source === 'public_storefront' ? 'Public storefront' : issue.source} · {issue.confidence ?? 'medium'} confidence
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-6 self-end md:self-auto">
-                    <span className={`text-[14px] font-bold ${countColor}`}>
-                      {issue.count} {issue.status === 'needs_verification' ? 'products to verify' : 'instances'}
-                    </span>
-                    <button
-                      onClick={() => onInspectIssue(issue)}
-                      className="text-[12px] font-bold text-[#0058be] hover:underline flex items-center gap-0.5 cursor-pointer"
-                      type="button"
-                    >
-                      <span>Inspect</span>
-                      <span className="material-symbols-outlined text-[16px]">chevron_right</span>
-                    </button>
-                  </div>
+          {[
+            {
+              key: 'confirmed',
+              heading: 'Confirmed issues',
+              count: findingSummary.confirmedIssues,
+              caption: 'Observed directly in the public storefront snapshot.',
+              list: confirmedIssuesList,
+            },
+            {
+              key: 'verify',
+              heading: 'Needs verification',
+              count: findingSummary.verificationItems,
+              caption: 'Cannot be confirmed from a public storefront. Not evidence of a problem.',
+              list: verificationIssuesList,
+            },
+            {
+              key: 'opportunities',
+              heading: 'Optimization opportunities',
+              count: findingSummary.opportunities,
+              caption: 'Heuristic quality signals, not definite errors.',
+              list: opportunityIssuesList,
+            },
+          ]
+            .filter((group) => group.list.length > 0)
+            .map((group) => (
+              <div key={group.key} className="flex flex-col gap-2">
+                <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-0.5">
+                  <h3 className="text-[14px] font-extrabold text-[#131b2e]">
+                    {group.heading} ({group.count})
+                  </h3>
+                  <span className="text-[11px] text-[#727785]">{group.caption}</span>
                 </div>
-              );
-            })}
-          </div>
+
+                {group.list.map((issue) => {
+                  const badgeStyle = {
+                    HIGH: 'bg-[#ffdad6] text-[#93000a]',
+                    MEDIUM: 'bg-[#ffddb8] text-[#653e00]',
+                    LOW: 'bg-[#d8e2ff] text-[#004395]',
+                  }[issue.severity];
+
+                  const countColor = {
+                    HIGH: 'text-[#ba1a1a]',
+                    MEDIUM: 'text-[#825100]',
+                    LOW: 'text-[#0058be]',
+                  }[issue.severity];
+
+                  const countLabel =
+                    issue.status === 'needs_verification'
+                      ? 'to verify'
+                      : issue.status === 'heuristic'
+                        ? 'opportunities'
+                        : 'instances';
+
+                  return (
+                    <div
+                      key={issue.id}
+                      className="bg-[#f2f3ff] p-4 rounded-[14px] flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-[#eaedff] transition-colors"
+                    >
+                      <div className="flex items-center gap-4">
+                        <span className={`px-3 py-1 rounded-full text-[11px] font-bold uppercase shrink-0 ${badgeStyle}`}>
+                          {issue.status === 'needs_verification' ? 'VERIFY' : issue.status === 'heuristic' ? 'HEURISTIC' : issue.severity}
+                        </span>
+                        <div className="flex flex-col">
+                          <span className="text-[15px] text-[#131b2e] font-bold">{issue.title}</span>
+                          {issue.rule ? (
+                            <span className="text-[12px] text-[#131b2e] font-medium">Rule: {issue.rule}</span>
+                          ) : null}
+                          <span className="text-[12px] text-[#424754]">{issue.description}</span>
+                          <span className="mt-1 text-[10px] font-semibold uppercase tracking-wide text-[#727785]">
+                            {issue.source === 'public_storefront' ? 'Public storefront' : issue.source} · {issue.confidence ?? 'medium'} confidence
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-6 self-end md:self-auto">
+                        <span className={`text-[14px] font-bold ${countColor}`}>
+                          {issue.count} {countLabel}
+                        </span>
+                        <button
+                          onClick={() => onInspectIssue(issue)}
+                          className="text-[12px] font-bold text-[#0058be] hover:underline flex items-center gap-0.5 cursor-pointer"
+                          type="button"
+                        >
+                          <span>Inspect</span>
+                          <span className="material-symbols-outlined text-[16px]">chevron_right</span>
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ))}
         </section>
 
         {/* Flagged Product Samples Section */}

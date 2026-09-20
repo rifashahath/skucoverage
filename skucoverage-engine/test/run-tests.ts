@@ -266,5 +266,132 @@ check("gtin: non-digit rejected (ABC123)", hasValidGtinCheckDigit("ABC123") === 
 check("gtin: invalid length 4 rejected (1234)", hasValidGtinCheckDigit("1234") === false)
 check("gtin: empty string rejected", hasValidGtinCheckDigit("") === false)
 
+
+/* ---- 13. finding summary + truthful labels ---- */
+check(
+	"summary: buckets reconcile with the visible issue list",
+	((): boolean => {
+		const fs = a.findingSummary
+		const listTotal = a.issues.reduce((acc: number, i: any) => acc + i.count, 0)
+		return (
+			fs.confirmedIssues + fs.verificationItems + fs.opportunities === fs.totalFindings &&
+			fs.totalFindings === listTotal
+		)
+	})(),
+	a.findingSummary,
+)
+check(
+	"summary: unverified GTINs are verification items, not confirmed issues",
+	a.findingSummary.verificationItems ===
+		a.issues.find((i: any) => i.type === "gtin_status_unverified").count &&
+		a.findingSummary.confirmedIssues ===
+			a.issues
+				.filter((i: any) => i.status === "observed")
+				.reduce((acc: number, i: any) => acc + i.count, 0),
+	a.findingSummary,
+)
+check(
+	"summary: high-priority confirmed excludes heuristics and verification",
+	a.findingSummary.highPriorityConfirmed ===
+		a.issues
+			.filter((i: any) => i.status === "observed" && i.priority === "high" && i.confidence === "high")
+			.reduce((acc: number, i: any) => acc + i.count, 0),
+	a.findingSummary,
+)
+check(
+	"labels: every finding carries a display title and the exact rule",
+	a.issues.every((i: any) => typeof i.title === "string" && i.title.length > 0 && typeof i.rule === "string" && i.rule.length > 0),
+)
+check(
+	"labels: heuristic titles avoid definite-error wording",
+	a.issues
+		.filter((i: any) => i.status === "heuristic")
+		.every((i: any) => /may|not set|fewer than|single level/i.test(i.title)),
+	a.issues.filter((i: any) => i.status === "heuristic").map((i: any) => i.title),
+)
+check(
+	"labels: image rule states the real threshold of 3",
+	/3 or more/.test(a.issues.find((i: any) => i.type === "too_few_images")?.rule ?? "") &&
+		/fewer than 3/i.test(a.issues.find((i: any) => i.type === "too_few_images")?.title ?? ""),
+)
+const titles = runEngine({
+	messageType: "audit_full_catalog",
+	requestId: "req_titles",
+	payload: {
+		products: [
+			{ id: "t1", title: "Short Tee", sku: "T1" },
+			{ id: "t2", title: "Men's Cotton Polo Shirt", sku: "T2" },
+		],
+	},
+})
+const ta = (titles.payload as any).audit
+check(
+	"labels: title rules state the real character thresholds",
+	/20-39/.test(ta.issues.find((i: any) => i.type === "incomplete_title")?.rule ?? "") &&
+		/fewer than 20/.test(ta.issues.find((i: any) => i.type === "title_too_short")?.rule ?? ""),
+	ta.issues.map((i: any) => [i.type, i.rule]),
+)
+check(
+	"labels: no finding claims Google categories or Merchant Center verdicts",
+	a.issues.every(
+		(i: any) => !/google/i.test(i.title) && !/google/i.test(i.rule),
+	),
+)
+check(
+	"evidence: expectations state the rule threshold per finding",
+	a.issues.every((i: any) =>
+		i.evidence.every((e: any) => typeof e.expected === "string" && e.expected.length > 0),
+	) &&
+		/40-150/.test(
+			ta.issues.find((i: any) => i.type === "incomplete_title")?.evidence?.[0]?.expected ?? "",
+		),
+	ta.issues.find((i: any) => i.type === "incomplete_title"),
+)
+check(
+	"scoring: method description is shipped with the result",
+	a.scoring.kind === "weighted_quality_score" &&
+		/not a pass rate/.test(a.scoring.note) &&
+		/rescaled to 100%/.test(a.scoring.formula.unassessed),
+	a.scoring,
+)
+
+/* ---- 14. shallow product type is a visible opportunity, not a silent score ---- */
+const shallow = runEngine({
+	messageType: "audit_full_catalog",
+	requestId: "req_shallow",
+	payload: {
+		products: [
+			{
+				id: "s1",
+				title: "Blue Cotton T-Shirt for Men - Soft Everyday Crew Neck",
+				description: "Soft cotton t-shirt in blue, available in sizes S-XXL, machine washable, perfect for everyday casual wear.",
+				gtin: "4006381333931",
+				category: "Shirts",
+				images: 4,
+				variants: 2,
+				brand: "B",
+				sku: "S1",
+			},
+		],
+	},
+})
+const sa = (shallow.payload as any).audit
+check(
+	"shallow: single-level product_type becomes a heuristic opportunity",
+	sa.issues.some(
+		(i: any) =>
+			i.type === "shallow_product_type" &&
+			i.status === "heuristic" &&
+			i.classification === "growth_opportunity" &&
+			/single level/i.test(i.title),
+	),
+	sa.issues.map((i: any) => i.type),
+)
+check(
+	"shallow: opportunity counted in opportunities bucket",
+	sa.findingSummary.opportunities === 1 && sa.findingSummary.confirmedIssues === 0,
+	sa.findingSummary,
+)
+
 console.log(`\n${passed} passed, ${failed} failed`)
 if (failed > 0) process.exit(1)

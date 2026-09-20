@@ -103,7 +103,7 @@ export const FixExportCenterView: React.FC<FixExportCenterViewProps> = ({
 
           <div className="p-5 rounded-2xl bg-[#fff5f5] border border-[#ffcdd2] flex flex-col gap-2">
             <span className="text-[11px] font-bold uppercase tracking-wider text-[#ba1a1a]">
-              Eligibility Blockers
+              High-priority Confirmed
             </span>
             <div className="flex items-baseline gap-2">
               <span className="text-[36px] font-black text-[#ba1a1a]">
@@ -112,22 +112,22 @@ export const FixExportCenterView: React.FC<FixExportCenterViewProps> = ({
               <span className="text-[14px] font-bold text-[#ba1a1a]">items</span>
             </div>
             <p className="text-[12px] text-[#ba1a1a]">
-              Potential blockers detected from available storefront fields. Confirm against Merchant Center diagnostics before editing.
+              Observed, high-confidence problems only. Verification items and heuristic opportunities are not counted here.
             </p>
           </div>
 
           <div className="p-5 rounded-2xl bg-[#f2f3ff] border border-[#c2c6d6]/30 flex flex-col gap-2">
             <span className="text-[11px] font-bold uppercase tracking-wider text-[#0058be]">
-              Total Issue Occurrences
+              Total Findings
             </span>
             <div className="flex items-baseline gap-2">
               <span className="text-[36px] font-black text-[#0058be]">
                 {auditData.detectedIssuesCount}
               </span>
-              <span className="text-[14px] font-bold text-[#727785]">instances</span>
+              <span className="text-[14px] font-bold text-[#727785]">confirmed + to verify + opportunities</span>
             </div>
             <p className="text-[12px] text-[#424754]">
-              Detected across {auditData.productsCount} analyzed products in this catalog scan.
+              Across {auditData.productsCount} analyzed products. {auditData.findingSummary ? `${auditData.findingSummary.confirmedIssues} confirmed, ${auditData.findingSummary.verificationItems} to verify, ${auditData.findingSummary.opportunities} opportunities.` : ''}
             </p>
           </div>
         </div>
@@ -191,7 +191,7 @@ export const FixExportCenterView: React.FC<FixExportCenterViewProps> = ({
                   Full Audit Diagnostic CSV
                 </h3>
                 <p className="text-[13px] text-[#424754] mt-1 leading-relaxed">
-                  Complete report including all {auditData.detectedIssuesCount || auditData.issues.length} detected issue instances, severity breakdown, and category health scores.
+                  Complete report including all {auditData.detectedIssuesCount || auditData.issues.length} findings (confirmed issues, verification items and opportunities), severity breakdown, and category health scores.
                 </p>
               </div>
             </div>

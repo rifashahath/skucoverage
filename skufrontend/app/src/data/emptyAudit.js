@@ -15,6 +15,7 @@ export const EMPTY_AUDIT_DATA = {
 	productsCount: 0,
 	detectedIssuesCount: 0,
 	highPriorityCount: 0,
+	findingSummary: { confirmedIssues: 0, verificationItems: 0, opportunities: 0, totalFindings: 0, highPriorityConfirmed: 0 },
 	attributeBreakdown: [],
 	issues: [],
 	flaggedProducts: [],
