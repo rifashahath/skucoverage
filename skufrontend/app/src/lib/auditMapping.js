@@ -92,10 +92,13 @@ export function mapEngineReportToStoreAudit(report, storeDomain, activeAuditId) 
       description: iss.impact || 'Review the source field in Shopify Admin.',
       count: iss.count || affected.length || 1,
       category: cat,
+      evidenceTruncated: (iss.count || 0) > affected.length,
       // Only real affected product ids are listed. Previously a synthetic
       // `PROD-n` row was invented whenever the engine returned none, so the
-      // UI showed products that do not exist.
-      affectedItems: affected.slice(0, 50).map((prodId, evidenceIndex) => {
+      // UI showed products that do not exist. The engine caps id lists at 200
+      // per issue while `count` stays exact; the UI slices for display and
+      // says so via evidenceTruncated.
+      affectedItems: affected.map((prodId, evidenceIndex) => {
         const evidence = Array.isArray(iss.evidence) ? iss.evidence[evidenceIndex] : null;
         const relativeUrl = evidence?.productUrl || null;
         const productUrl = relativeUrl && storeDomain
@@ -158,6 +161,11 @@ export function mapEngineReportToStoreAudit(report, storeDomain, activeAuditId) 
     detectedIssuesCount,
     highPriorityCount,
     findingSummary,
+    // Exact channel-readiness unions computed engine-side (unique products
+    // per status and overall). Null for audits stored before this field
+    // existed; the channel-readiness view falls back to an estimate and
+    // labels it as one.
+    readiness: audit.readiness || null,
     attributeBreakdown,
     // A clean catalog legitimately has zero issues. Falling back to the mock
     // list here meant a perfect store was shown someone else's problems.

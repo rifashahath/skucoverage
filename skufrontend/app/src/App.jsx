@@ -819,6 +819,7 @@ export function App() {
             <ChannelReadinessView
               auditData={auditData}
               onReviewExport={() => handleSelectTab('fix-export')}
+              onInspectIssue={(issue) => setInspectIssue(issue)}
             />
           )}
 

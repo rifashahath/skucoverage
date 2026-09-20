@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { CatalogIssue } from '../types';
+import { CatalogIssue, AffectedItem } from '../types';
+import { getChannelMeta, getConfidenceLabel, getSourceLabel, CHANNEL_LABELS } from '../lib/channelReadiness';
 
 interface InspectIssueModalProps {
   issue: CatalogIssue | null;
@@ -16,8 +17,33 @@ export const InspectIssueModal: React.FC<InspectIssueModalProps> = ({
 }) => {
   const [fixedSkus, setFixedSkus] = useState<Record<string, boolean>>({});
   const [fixingAll, setFixingAll] = useState(false);
+  const [copiedSku, setCopiedSku] = useState<string | null>(null);
 
   if (!issue) return null;
+
+  const channelNames = getChannelMeta(issue.category).channels.map((c) => CHANNEL_LABELS[c] || c).join(' + ');
+  const visibleItems = issue.affectedItems.slice(0, 50);
+
+  // Copies the exact evidence and fix text so the merchant can paste it into
+  // Shopify, a spreadsheet, or a task for a teammate.
+  const handleCopyFix = async (item: AffectedItem) => {
+    const lines = [
+      `Product: ${item.productTitle}${item.productUrl ? ` (${item.productUrl})` : ''}`,
+      `Issue: ${issue.title}`,
+      item.issueDetail ? `Detected: ${item.issueDetail}` : '',
+      item.expected ? `Suggested fix: ${item.expected}` : item.suggestedFix ? `Suggested fix: ${item.suggestedFix}` : '',
+      `Source: ${item.dataSourceChecked || 'Public storefront snapshot'}`,
+      issue.status === 'needs_verification' ? 'Status: Needs verification' : `Confidence: ${getConfidenceLabel(issue)}`,
+      `Channels: ${channelNames}`,
+    ].filter(Boolean).join('\n');
+    try {
+      await navigator.clipboard.writeText(lines);
+      setCopiedSku(item.sku);
+      setTimeout(() => setCopiedSku((prev) => (prev === item.sku ? null : prev)), 2000);
+    } catch {
+      // Clipboard unavailable (permissions or old browser): no fake confirmation.
+    }
+  };
 
   const handleFixOne = (sku: string) => {
     setFixedSkus((prev) => ({ ...prev, [sku]: true }));
@@ -80,7 +106,7 @@ export const InspectIssueModal: React.FC<InspectIssueModalProps> = ({
               {issue.description}
             </p>
             <p className="text-[11px] font-semibold uppercase tracking-wide text-[#727785]">
-              {issue.source === 'public_storefront' ? 'Public storefront' : issue.source} · {issue.confidence ?? 'medium'} confidence
+              {getSourceLabel(issue.source)} · {issue.status === 'needs_verification' ? 'Needs verification' : getConfidenceLabel(issue)} · Applies to: {channelNames}
             </p>
           </div>
 
@@ -96,17 +122,19 @@ export const InspectIssueModal: React.FC<InspectIssueModalProps> = ({
         {/* Affected Items List */}
         <div className="flex-1 overflow-y-auto py-4 space-y-3">
           <span className="text-[11px] font-bold uppercase tracking-wider text-[#727785]">
-            Product evidence (first 50)
+            {issue.count > visibleItems.length
+              ? `Product evidence (first ${visibleItems.length} of ${issue.count} products)`
+              : `Product evidence (${issue.count} product${issue.count === 1 ? '' : 's'})`}
           </span>
 
-          {issue.affectedItems.map((item) => {
+          {visibleItems.map((item) => {
             const isFixed = fixedSkus[item.sku];
             return (
               <div
                 key={item.sku}
-                className="p-4 rounded-xl bg-[#f2f3ff] border border-[#c2c6d6]/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-[#eaedff] transition-colors"
+                className="p-4 rounded-xl bg-[#f2f3ff] border border-[#c2c6d6]/30 flex min-w-0 flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-[#eaedff] transition-colors"
               >
-                <div className="flex items-center gap-3">
+                <div className="flex min-w-0 items-center gap-3">
                   {item.imageUrl ? (
                     <img
                       src={item.imageUrl}
@@ -146,6 +174,14 @@ export const InspectIssueModal: React.FC<InspectIssueModalProps> = ({
                 </div>
 
                 <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
+                  <button
+                    onClick={() => handleCopyFix(item)}
+                    aria-label={`Copy fix details for ${item.productTitle}`}
+                    className="inline-flex items-center gap-1 text-[12px] font-bold text-[#424754] bg-white hover:bg-[#f2f3ff] px-3 py-1.5 rounded-full border border-[#c2c6d6]/50 transition-all cursor-pointer shadow-xs"
+                  >
+                    <span className="material-symbols-outlined text-[15px]">{copiedSku === item.sku ? 'check' : 'content_copy'}</span>
+                    <span>{copiedSku === item.sku ? 'Copied' : 'Copy fix'}</span>
+                  </button>
                   {isFixed ? (
                     <span className="inline-flex items-center gap-1 text-[12px] font-bold text-[#006c49] bg-[#6ffbbe]/40 px-3 py-1 rounded-full">
                       <span className="material-symbols-outlined text-[16px]">check</span>

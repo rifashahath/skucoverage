@@ -122,8 +122,23 @@ export function buildAuditCsv(report: Record<string, unknown>): string {
     issue.impact,
   ]);
 
-  // Section 2: Fix list
-  const fixListHeader = ['ProductId', 'Issue', 'Priority', 'CurrentState', 'SuggestedFix'];
+  // Section 2: Fix list. Product URLs come from the engine evidence (paths
+  // on the scanned storefront); they are absolutized against the scanned
+  // store host so a merchant can open the exact product from the CSV.
+  const storeId = (report.payload as Record<string, unknown> | undefined)?.storeId;
+  const storeHost = typeof storeId === 'string' && storeId.includes('.') ? `https://${storeId.replace(/^https?:\/\//, '').replace(/\/.*$/, '')}` : '';
+  const toAbsoluteUrl = (value: unknown): string => {
+    const url = String(value ?? '');
+    if (!url) return '';
+    if (url.startsWith('http://') || url.startsWith('https://')) return url;
+    if (!storeHost) return url;
+    try {
+      return new URL(url, storeHost).toString();
+    } catch {
+      return url;
+    }
+  };
+  const fixListHeader = ['ProductId', 'ProductUrl', 'Variant', 'Issue', 'Priority', 'CurrentState', 'SuggestedFix'];
   const fixRows: Array<unknown[]> = [];
 
   for (const issue of issues) {
@@ -134,10 +149,20 @@ export function buildAuditCsv(report: Record<string, unknown>): string {
       suggestedFix: typeof issue.impact === 'string' && issue.impact ? `Fix issue to improve ${issue.impact}` : 'Review and update product details in Shopify',
     };
 
+    const evidenceById = new Map<string, Record<string, unknown>>();
+    const evidence = Array.isArray(issue.evidence) ? issue.evidence as Array<Record<string, unknown>> : [];
+    for (const item of evidence) {
+      const evidenceId = String(item?.productId ?? '');
+      if (evidenceId) evidenceById.set(evidenceId, item);
+    }
+
     const affected = Array.isArray(issue.affectedProducts) ? issue.affectedProducts : [];
     for (const productId of affected) {
+      const itemEvidence = evidenceById.get(String(productId));
       fixRows.push([
         productId,
+        toAbsoluteUrl(itemEvidence?.productUrl),
+        itemEvidence?.variant ?? '',
         issueType,
         priority,
         mapping.currentState,

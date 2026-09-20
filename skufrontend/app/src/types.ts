@@ -34,7 +34,26 @@ export interface CatalogIssue {
   description: string;
   count: number;
   category: 'gtin' | 'alt-text' | 'description' | 'category' | 'sku';
+  /** True when the engine listed fewer affected products than `count`. */
+  evidenceTruncated?: boolean;
   affectedItems: AffectedItem[];
+}
+
+export interface ReadinessBucket {
+  /** Sum of per-issue counts: one finding per affected product per issue. */
+  findings: number;
+  /** Unique products carrying at least one finding in this bucket. */
+  products: number;
+}
+
+export interface ReadinessSummary {
+  scannedProducts: number;
+  affectedProducts: number;
+  readyProducts: number;
+  totalFindings: number;
+  blocker: ReadinessBucket;
+  attention: ReadinessBucket;
+  verification: ReadinessBucket;
 }
 
 export interface AffectedItem {
@@ -108,6 +127,8 @@ export interface StoreAuditData {
   scanLimit?: number;
   scanned?: number;
   coverage?: { source: string; authoritative: boolean; included: string[]; excluded: string[] };
+  /** Exact channel-readiness unions from the engine; null on older audits. */
+  readiness?: ReadinessSummary | null;
   scoring?: {
     dimensions: string[];
     weights: Record<string, number>;

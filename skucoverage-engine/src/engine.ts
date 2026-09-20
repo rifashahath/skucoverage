@@ -15,6 +15,8 @@ import type {
 	FindingStatus,
 	EvidenceSource,
 	Product,
+	ReadinessStatus,
+	ReadinessSummary,
 } from "./types"
 import { GENERIC_CATEGORIES, TAXONOMY } from "./taxonomy"
 
@@ -348,6 +350,74 @@ export function summarizeFindings(issues: Issue[]): FindingSummary {
 	}
 }
 
+/**
+ * Channel-readiness status for one finding. Needs verification always wins
+ * over the issue class: a signal the public source cannot confirm (for
+ * example no GTIN visible on the storefront) is never presented as a blocker
+ * or a confirmed problem. The frontend mirrors this mapping in
+ * skufrontend/app/src/lib/channelReadiness.js; keep the two in sync.
+ */
+export function getReadinessStatus(issue: Pick<Issue, "classification" | "status">): ReadinessStatus {
+	if (issue.status === "needs_verification") return "verification"
+	if (issue.classification === "eligibility_blocker") return "blocker"
+	return "attention"
+}
+
+/**
+ * Channel-readiness totals with exact unique-product unions. Computed here
+ * because the payload caps per-issue id lists (MAX_AFFECTED) while `count`
+ * stays exact; only the engine still sees every affected id.
+ *
+ * Units, so the UI never has to guess: within one issue, one finding is one
+ * affected product, so `findings` per bucket is a sum of affected-product
+ * counts. `products` is the union across issues in that bucket - one product
+ * can carry findings in several buckets at once.
+ */
+export function summarizeReadiness(
+	issues: Issue[],
+	scannedProducts: number,
+	fullAffectedIds: Array<{ issue: Issue; ids: string[] }>,
+): ReadinessSummary {
+	const idsByStatus: Record<ReadinessStatus, Set<string>> = {
+		blocker: new Set<string>(),
+		attention: new Set<string>(),
+		verification: new Set<string>(),
+	}
+	const allIds = new Set<string>()
+	for (const { issue, ids } of fullAffectedIds) {
+		const status = getReadinessStatus(issue)
+		for (const id of ids) {
+			idsByStatus[status].add(id)
+			allIds.add(id)
+		}
+	}
+	const bucket = (status: ReadinessStatus) => ({
+		findings: issues
+			.filter((issue) => getReadinessStatus(issue) === status)
+			.reduce((acc, issue) => acc + issue.count, 0),
+		products: idsByStatus[status].size,
+	})
+	return {
+		scannedProducts,
+		affectedProducts: allIds.size,
+		readyProducts: Math.max(0, scannedProducts - allIds.size),
+		totalFindings: issues.reduce((acc, issue) => acc + issue.count, 0),
+		blocker: bucket("blocker"),
+		attention: bucket("attention"),
+		verification: bucket("verification"),
+	}
+}
+
+const EMPTY_READINESS: ReadinessSummary = {
+	scannedProducts: 0,
+	affectedProducts: 0,
+	readyProducts: 0,
+	totalFindings: 0,
+	blocker: { findings: 0, products: 0 },
+	attention: { findings: 0, products: 0 },
+	verification: { findings: 0, products: 0 },
+}
+
 /** Static description of the scoring method, shipped with every audit result. */
 export function buildScoringDescription() {
 	return {
@@ -658,6 +728,7 @@ export function auditFullCatalog(products: Product[]) {
 				issues: [] as Issue[],
 				issueGroups: { eligibilityBlockers: [], dataWarnings: [], growthOpportunities: [] },
 				findingSummary: { confirmedIssues: 0, verificationItems: 0, opportunities: 0, totalFindings: 0, highPriorityConfirmed: 0 } as FindingSummary,
+				readiness: EMPTY_READINESS,
 				scoring: buildScoringDescription(),
 				coverage: { assessedProducts: 0, source: "provided_product_snapshot", authoritative: false, included: ["product fields supplied to the engine"], excluded: ["Merchant Center diagnostics", "GS1 company assignment verification", "unpublished or inaccessible products"] },
 				recommendations: ["No products to audit - connect a store with products"],
@@ -669,6 +740,7 @@ export function auditFullCatalog(products: Product[]) {
 	const scores = products.map(scoreProduct)
 
 	const issues: Issue[] = []
+	const readinessInput: Array<{ issue: Issue; ids: string[] }> = []
 	const recommendations: Array<{ priority: Priority; count: number; text: string }> = []
 
 	for (const spec of ISSUE_SPECS) {
@@ -676,7 +748,7 @@ export function auditFullCatalog(products: Product[]) {
 		if (affected.length === 0) continue
 		const percent = pct(affected.length, total)
 		const affectedScores = scores.filter(spec.match)
-		issues.push({
+		const issue: Issue = {
 			type: spec.type,
 			classification: spec.classification,
 			title: spec.title,
@@ -702,7 +774,9 @@ export function auditFullCatalog(products: Product[]) {
 						...evidence,
 					}
 			}),
-		})
+		}
+		issues.push(issue)
+		readinessInput.push({ issue, ids: affected })
 		recommendations.push({
 			priority: spec.priority,
 			count: affected.length,
@@ -752,6 +826,7 @@ export function auditFullCatalog(products: Product[]) {
 			},
 			scoring: buildScoringDescription(),
 			findingSummary: summarizeFindings(issues),
+			readiness: summarizeReadiness(issues, total, readinessInput),
 			coverage: { assessedProducts: total, source: "provided_product_snapshot", authoritative: false, included: ["product fields supplied to the engine"], excluded: ["Merchant Center diagnostics", "GS1 company assignment verification", "unpublished or inaccessible products"] },
 			recommendations: recommendations.slice(0, 5).map((r) => r.text),
 			nextSteps: [
@@ -1233,7 +1308,9 @@ export function runEngine(request: EngineRequest): EngineResponse {
 			return {
 				messageType: "audit_result",
 				requestId,
-				payload: auditFullCatalog(products),
+				// storeId is echoed so stored reports stay self-describing (the
+				// CSV export absolutizes product URLs against it).
+				payload: { ...auditFullCatalog(products), storeId: text(payload.storeId) || null },
 			}
 		case "category_recommend":
 			return {
