@@ -58,6 +58,10 @@ export interface EngineResponse {
 export interface Issue {
 	type: string
 	classification: IssueClass
+	/** Display label describing the real rule, never a stronger claim. */
+	title: string
+	/** The exact rule applied, including thresholds. */
+	rule: string
 	count: number
 	affectedProducts: string[]
 	priority: Priority
@@ -67,4 +71,17 @@ export interface Issue {
 	confidence: Confidence
 	source: EvidenceSource
 	evidence: Array<{ productId: string; observed: string; expected: string }>
+}
+
+export interface FindingSummary {
+	/** Sum of counts for observed findings: problems proven by the snapshot. */
+	confirmedIssues: number
+	/** Sum of counts the source cannot confirm; not evidence of a problem. */
+	verificationItems: number
+	/** Sum of counts for heuristic quality signals; not definite errors. */
+	opportunities: number
+	/** confirmedIssues + verificationItems + opportunities. */
+	totalFindings: number
+	/** Observed, high-priority, high-confidence findings only. */
+	highPriorityConfirmed: number
 }

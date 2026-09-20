@@ -29,6 +29,8 @@ export interface CatalogIssue {
   confidence?: 'high' | 'medium' | 'low';
   source?: string;
   title: string;
+  /** The exact rule applied, including thresholds. */
+  rule?: string;
   description: string;
   count: number;
   category: 'gtin' | 'alt-text' | 'description' | 'category' | 'sku';
@@ -83,6 +85,14 @@ export interface StoreAuditData {
   productsCount: number;
   detectedIssuesCount: number;
   highPriorityCount: number;
+  /** Bucket split that reconciles with the visible findings list. */
+  findingSummary?: {
+    confirmedIssues: number;
+    verificationItems: number;
+    opportunities: number;
+    totalFindings: number;
+    highPriorityConfirmed: number;
+  };
   attributeBreakdown: AttributeScore[];
   issues: CatalogIssue[];
   flaggedProducts: FlaggedProduct[];

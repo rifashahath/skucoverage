@@ -7,6 +7,7 @@
 import type {
 	EngineRequest,
 	EngineResponse,
+	FindingSummary,
 	Issue,
 	IssueClass,
 	Priority,
@@ -318,6 +319,44 @@ export function scoreProduct(product: Product): ProductScore {
 	}
 }
 
+
+/**
+ * Split findings into the three buckets the report displays, so the headline
+ * total always reconciles with the visible list:
+ * confirmed (observed) + needs verification + opportunities (heuristic).
+ */
+export function summarizeFindings(issues: Issue[]): FindingSummary {
+	const sum = (list: Issue[]) => list.reduce((acc, i) => acc + i.count, 0)
+	const observed = issues.filter((i) => i.status === "observed")
+	const confirmedIssues = sum(observed)
+	const verificationItems = sum(issues.filter((i) => i.status === "needs_verification"))
+	const opportunities = sum(issues.filter((i) => i.status === "heuristic"))
+	return {
+		confirmedIssues,
+		verificationItems,
+		opportunities,
+		totalFindings: confirmedIssues + verificationItems + opportunities,
+		highPriorityConfirmed: sum(
+			observed.filter((i) => i.priority === "high" && i.confidence === "high"),
+		),
+	}
+}
+
+/** Static description of the scoring method, shipped with every audit result. */
+export function buildScoringDescription() {
+	return {
+		kind: "weighted_quality_score",
+		dimensions: ["titles", "descriptions", "gtins", "categories", "images", "variants"],
+		weights: WEIGHTS,
+		note: "This is a weighted quality score, not a pass rate. Scores include only fields the source can assess; unavailable fields are excluded, not treated as zero or 100.",
+		formula: {
+			perProduct: "Per product: sum(field score x field weight) / sum(weights of the fields assessed for that product).",
+			overall: "The overall score is the average of the per-product scores across reviewed products.",
+			unassessed: "A field that cannot be assessed for a product is dropped and the remaining weights are rescaled to 100%, so missing data never counts as 0 or 100.",
+		},
+	}
+}
+
 /* ------------------------------------------------------------------ */
 /* audit_full_catalog                                                  */
 /* ------------------------------------------------------------------ */
@@ -338,15 +377,36 @@ function issueEvidence(type: string, score: ProductScore): { observed: string; e
 		missing_brand: "Vendor/brand is empty in the public storefront snapshot",
 		missing_sku: "First public storefront variant has no SKU",
 		missing_category: "Storefront product_type is empty",
+		shallow_product_type: `Storefront product_type is a single level (depth ${score.category.depth})`,
 		generic_category: `Storefront product_type matched a generic label (depth ${score.category.depth})`,
 		duplicate_category_levels: `Storefront product_type repeats a level (depth ${score.category.depth})`,
 		too_few_images: `${score.images.count} product image${score.images.count === 1 ? "" : "s"} in the public storefront snapshot`,
 	}
+	// Each expectation states the actual rule the engine applies, including
+	// thresholds, so a merchant can verify a finding against their own data.
+	const expectedByType: Record<string, string> = {
+		missing_title: "A non-empty title; a product cannot be sold or indexed without one",
+		gtin_status_unverified: "Verify in Shopify Admin or Merchant Center whether a manufacturer identifier exists and is required",
+		invalid_gtin: "A numeric barcode of 8, 12, 13 or 14 digits with a valid Modulo-10 check digit",
+		no_images: "At least one product image; 3 or more score full credit",
+		title_too_short: "Titles of 40-150 characters score full credit; under 20 is a heuristic quality signal",
+		incomplete_title: "Titles of 40-150 characters score full credit; 20-39 is a heuristic signal that useful detail may be missing",
+		title_too_long: "Titles of 40-150 characters score full credit; longer titles may be truncated",
+		missing_description: "A description of 100+ characters mentioning material, size, color or use-case attributes",
+		incomplete_description: "100+ characters with material, size, color or use-case attributes score full credit",
+		variants_as_products: "One product with variant options instead of one product per variant",
+		duplicate_variant_titles: "A unique title per variant",
+		missing_brand: "A vendor/brand value in the storefront data",
+		missing_sku: "A SKU on the public variant",
+		missing_category: "A storefront product_type value",
+		shallow_product_type: "A product_type with 2 or more levels, e.g. 'Clothing > Shirts'",
+		generic_category: "A specific product_type instead of a generic label such as 'misc' or 'other'",
+		duplicate_category_levels: "A product_type without repeated levels",
+		too_few_images: "3 or more images score full credit; this product has fewer than 3",
+	}
 	return {
 		observed: observedByType[type] ?? (score.productTitle || "Field value observed in public storefront snapshot"),
-		expected: type === "gtin_status_unverified"
-			? "Verify in Shopify Admin or Merchant Center whether a manufacturer identifier exists and is required"
-			: "Review this observation against the rule description before changing product data",
+		expected: expectedByType[type] ?? "Review this observation against the rule description before changing product data",
 	}
 }
 
@@ -355,6 +415,10 @@ type IssueSpec = {
 	classification: IssueClass
 	priority: Priority
 	impact: string
+	/** Display label. Must describe the real rule, not a stronger claim. */
+	title: string
+	/** The exact rule applied, including thresholds, shown next to the finding. */
+	rule: string
 	match: (s: ProductScore) => boolean
 	status?: FindingStatus
 	confidence?: Confidence
@@ -369,6 +433,8 @@ const ISSUE_SPECS: IssueSpec[] = [
 		classification: "eligibility_blocker",
 		priority: "high",
 		impact: IMPACT.title,
+		title: "Missing title",
+		rule: "Title is empty in the public storefront snapshot.",
 		match: (s) => s.title.state === "missing",
 		recommendation: (c, p) =>
 			`Add a title to ${c} product${c === 1 ? "" : "s"} (${p}% of catalog) - they cannot be sold or indexed without one`,
@@ -378,6 +444,8 @@ const ISSUE_SPECS: IssueSpec[] = [
 		classification: "data_warning",
 		priority: "low",
 		impact: "No barcode was exposed by the public storefront; whether one is required cannot be determined here",
+		title: "GTIN status unverified",
+		rule: "No barcode is exposed on the public storefront variant. Whether a GTIN exists or is required cannot be determined from this source; confirm in Shopify Admin or Merchant Center.",
 		match: (s) => s.gtin.state === "missing_unverified",
 		status: "needs_verification",
 		confidence: "high",
@@ -389,6 +457,8 @@ const ISSUE_SPECS: IssueSpec[] = [
 		classification: "data_warning",
 		priority: "high",
 		impact: IMPACT.gtin,
+		title: "Malformed GTIN value",
+		rule: "Barcode fails the supported-length (8, 12, 13 or 14 digits) or Modulo-10 check-digit format check.",
 		match: (s) => s.gtin.state === "invalid",
 		status: "observed",
 		confidence: "high",
@@ -400,6 +470,8 @@ const ISSUE_SPECS: IssueSpec[] = [
 		classification: "eligibility_blocker",
 		priority: "high",
 		impact: IMPACT.images,
+		title: "No product images",
+		rule: "0 images in the public storefront snapshot.",
 		match: (s) => s.images.state === "none",
 		recommendation: (c, p) =>
 			`Add images to ${c} product${c === 1 ? "" : "s"} with zero photos (${p}% of catalog) - may block listing eligibility and reduces buyer trust`,
@@ -409,6 +481,8 @@ const ISSUE_SPECS: IssueSpec[] = [
 		classification: "data_warning",
 		priority: "high",
 		impact: IMPACT.title,
+		title: "Title may be too short",
+		rule: "Title has fewer than 20 characters. Heuristic quality signal, not a disapproval rule.",
 		match: (s) => s.title.state === "too_short",
 		status: "heuristic",
 		confidence: "medium",
@@ -420,6 +494,8 @@ const ISSUE_SPECS: IssueSpec[] = [
 		classification: "growth_opportunity",
 		priority: "medium",
 		impact: IMPACT.title,
+		title: "Title may be missing useful detail",
+		rule: "Title is 20-39 characters; 40 or more score full credit. Heuristic signal, not a definite error.",
 		match: (s) => s.title.state === "incomplete",
 		status: "heuristic",
 		confidence: "medium",
@@ -431,6 +507,8 @@ const ISSUE_SPECS: IssueSpec[] = [
 		classification: "growth_opportunity",
 		priority: "low",
 		impact: IMPACT.title,
+		title: "Title may be truncated",
+		rule: "Title exceeds 150 characters and may be truncated in some surfaces. Heuristic signal.",
 		match: (s) => s.title.state === "too_long",
 		status: "heuristic",
 		confidence: "medium",
@@ -442,6 +520,8 @@ const ISSUE_SPECS: IssueSpec[] = [
 		classification: "data_warning",
 		priority: "medium",
 		impact: IMPACT.description,
+		title: "Missing description",
+		rule: "Description is empty in the public storefront snapshot.",
 		match: (s) => s.description.state === "missing",
 		recommendation: (c, p) =>
 			`Write descriptions for ${c} product${c === 1 ? "" : "s"} with none (${p}% of catalog)`,
@@ -451,6 +531,8 @@ const ISSUE_SPECS: IssueSpec[] = [
 		classification: "growth_opportunity",
 		priority: "medium",
 		impact: IMPACT.description,
+		title: "Description may be missing useful detail",
+		rule: "Description is under 100 characters or mentions no material, size, color or use-case attribute. Heuristic signal.",
 		match: (s) => s.description.state === "incomplete",
 		status: "heuristic",
 		confidence: "medium",
@@ -462,6 +544,8 @@ const ISSUE_SPECS: IssueSpec[] = [
 		classification: "data_warning",
 		priority: "medium",
 		impact: IMPACT.variants,
+		title: "Variants published as separate products",
+		rule: "The source marks these as variants listed as separate products.",
 		match: (s) => s.variants.state === "variants_as_products",
 		recommendation: (c) =>
 			`Merge ${c} product${c === 1 ? "" : "s"} that duplicate colors/sizes into variant options`,
@@ -471,6 +555,8 @@ const ISSUE_SPECS: IssueSpec[] = [
 		classification: "data_warning",
 		priority: "medium",
 		impact: IMPACT.variants,
+		title: "Duplicate variant titles",
+		rule: "Variants of one product share identical titles.",
 		match: (s) => s.variants.state === "duplicate_variant_titles",
 		recommendation: (c) =>
 			`Give unique titles/SKUs to variants on ${c} product${c === 1 ? "" : "s"}`,
@@ -480,6 +566,8 @@ const ISSUE_SPECS: IssueSpec[] = [
 		classification: "growth_opportunity",
 		priority: "medium",
 		impact: IMPACT.brand,
+		title: "Brand/vendor not set",
+		rule: "Vendor/brand is empty in the public storefront snapshot. Heuristic signal for AI-agent matching.",
 		match: (s) => !s.hasBrand,
 		status: "heuristic",
 		confidence: "medium",
@@ -491,6 +579,8 @@ const ISSUE_SPECS: IssueSpec[] = [
 		classification: "data_warning",
 		priority: "low",
 		impact: IMPACT.variants,
+		title: "SKU not set",
+		rule: "The first public storefront variant has no SKU.",
 		match: (s) => !s.hasSku,
 		recommendation: (c) => `Assign SKUs to ${c} product${c === 1 ? "" : "s"}`,
 	},
@@ -499,6 +589,8 @@ const ISSUE_SPECS: IssueSpec[] = [
 		classification: "growth_opportunity",
 		priority: "low",
 		impact: IMPACT.category,
+		title: "Product type not set",
+		rule: "Storefront product_type is empty.",
 		match: (s) => s.category.state === "missing",
 		status: "heuristic",
 		confidence: "medium",
@@ -506,10 +598,25 @@ const ISSUE_SPECS: IssueSpec[] = [
 			`Assign Shopify Standard Product Taxonomy categories to ${c} product${c === 1 ? "" : "s"}`,
 	},
 	{
+		type: "shallow_product_type",
+		classification: "growth_opportunity",
+		priority: "low",
+		impact: IMPACT.category,
+		title: "Product type is a single level",
+		rule: "Storefront product_type has one level only (e.g. 'Shirts'); paths with 2 or more levels score full credit. Heuristic signal.",
+		match: (s) => s.category.state === "shallow",
+		status: "heuristic",
+		confidence: "medium",
+		recommendation: (c) =>
+			`Deepen the storefront product_type on ${c} product${c === 1 ? "" : "s"} to a multi-level taxonomy path`,
+	},
+	{
 		type: "generic_category",
 		classification: "growth_opportunity",
 		priority: "low",
 		impact: IMPACT.category,
+		title: "Product type may be too broad",
+		rule: "Storefront product_type matches a generic label such as 'misc' or 'other'. Heuristic signal.",
 		match: (s) => s.category.state === "generic",
 		status: "heuristic",
 		confidence: "medium",
@@ -521,6 +628,8 @@ const ISSUE_SPECS: IssueSpec[] = [
 		classification: "data_warning",
 		priority: "low",
 		impact: IMPACT.category,
+		title: "Product type repeats a level",
+		rule: "Storefront product_type repeats the same level (e.g. 'Clothing > Clothing').",
 		match: (s) => s.category.state === "duplicate_levels",
 		recommendation: (c) =>
 			`Clean up repeated category levels on ${c} product${c === 1 ? "" : "s"}`,
@@ -530,6 +639,8 @@ const ISSUE_SPECS: IssueSpec[] = [
 		classification: "growth_opportunity",
 		priority: "low",
 		impact: IMPACT.images,
+		title: "Fewer than 3 images",
+		rule: "Product has 1-2 images in the public storefront snapshot; 3 or more score full credit. Heuristic quality signal.",
 		match: (s) => s.images.state === "too_few",
 		status: "heuristic",
 		confidence: "medium",
@@ -555,7 +666,8 @@ export function auditFullCatalog(products: Product[]) {
 				},
 				issues: [] as Issue[],
 				issueGroups: { eligibilityBlockers: [], dataWarnings: [], growthOpportunities: [] },
-				scoring: { dimensions: ["titles", "descriptions", "gtins", "categories", "images", "variants"], weights: WEIGHTS, note: "Scores include only fields the source can assess; unavailable fields are excluded, not treated as zero or 100." },
+				findingSummary: { confirmedIssues: 0, verificationItems: 0, opportunities: 0, totalFindings: 0, highPriorityConfirmed: 0 } as FindingSummary,
+				scoring: buildScoringDescription(),
 				coverage: { assessedProducts: 0, source: "provided_product_snapshot", authoritative: false, included: ["product fields supplied to the engine"], excluded: ["Merchant Center diagnostics", "GS1 company assignment verification", "unpublished or inaccessible products"] },
 				recommendations: ["No products to audit - connect a store with products"],
 				nextSteps: ["Import products, then re-run the audit"],
@@ -576,6 +688,8 @@ export function auditFullCatalog(products: Product[]) {
 		issues.push({
 			type: spec.type,
 			classification: spec.classification,
+			title: spec.title,
+			rule: spec.rule,
 			count: affected.length,
 			affectedProducts: affected.slice(0, MAX_AFFECTED),
 			priority: spec.priority,
@@ -636,7 +750,8 @@ export function auditFullCatalog(products: Product[]) {
 				dataWarnings: issues.filter((issue) => issue.classification === "data_warning"),
 				growthOpportunities: issues.filter((issue) => issue.classification === "growth_opportunity"),
 			},
-			scoring: { dimensions: ["titles", "descriptions", "gtins", "categories", "images", "variants"], weights: WEIGHTS, note: "Scores include only fields the source can assess; unavailable fields are excluded, not treated as zero or 100." },
+			scoring: buildScoringDescription(),
+			findingSummary: summarizeFindings(issues),
 			coverage: { assessedProducts: total, source: "provided_product_snapshot", authoritative: false, included: ["product fields supplied to the engine"], excluded: ["Merchant Center diagnostics", "GS1 company assignment verification", "unpublished or inaccessible products"] },
 			recommendations: recommendations.slice(0, 5).map((r) => r.text),
 			nextSteps: [

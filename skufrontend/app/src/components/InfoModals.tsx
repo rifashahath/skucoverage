@@ -315,14 +315,22 @@ export const InfoModals: React.FC<InfoModalProps> = ({
             </div>
             <h2 className="text-[22px] font-extrabold text-[#131b2e]">Audit Scope &amp; Rules</h2>
             <div className="space-y-2 text-[13px] text-[#424754]">
-              <p>Active audit profile tests the following criteria:</p>
+              <p>Active audit profile on the public storefront snapshot:</p>
               <ul className="list-disc pl-5 space-y-1">
-                <li>Variant UPC/EAN checksum valid checks</li>
-                <li>Primary and gallery thumbnail alt tags</li>
-                <li>Descriptions length &gt; 100 characters</li>
-                <li>Standard Google category mapping</li>
-                <li>SKU code duplication or null value check</li>
+                <li>Title quality: full credit at 40-150 characters; under 20 is flagged as a heuristic</li>
+                <li>Description quality: 100+ characters mentioning material, size, color or use case (heuristic)</li>
+                <li>GTIN / barcode: format check (8, 12, 13 or 14 digits plus Modulo-10 check digit) on the public variant barcode; products with no public barcode are listed as needs verification, never as failures</li>
+                <li>Storefront product type: multi-level product_type paths score higher; empty, generic or repeated levels are flagged</li>
+                <li>Image count: 0 images is a confirmed issue; 1-2 images is a heuristic; 3 or more score full credit</li>
+                <li>Variant structure: duplicate variant titles or variants published as separate products are flagged</li>
               </ul>
+              <p className="pt-2 font-semibold text-[#131b2e]">How the score is calculated</p>
+              <p>
+                Weighted quality score, not a pass rate. Per product: sum(field score x field weight) / sum(weights of the fields assessed for that product). Weights: title 20%, description 10%, GTIN 30%, product type 15%, image count 20%, variants 5%. Fields that cannot be assessed are dropped and the remaining weights rescaled to 100%. The overall score is the average of the per-product scores.
+              </p>
+              <p>
+                Not included: Merchant Center diagnostics, GS1 ownership verification, unpublished products, image resolution or alt text, and Google Product Taxonomy comparison.
+              </p>
             </div>
           </div>
         )}
