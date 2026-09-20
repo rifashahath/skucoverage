@@ -1,6 +1,6 @@
 export type NavigationTab =
   | 'dashboard'
-  | 'channel-readiness'
+  | 'barcodes'
   | 'seo-images'
   | 'categories'
   | 'fix-export'

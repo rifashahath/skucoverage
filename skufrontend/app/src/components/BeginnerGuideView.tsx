@@ -33,15 +33,15 @@ export const BeginnerGuideView: React.FC = () => {
       ),
     },
     {
-      title: '2. What is a GTIN (barcode), and when does it matter?',
+      title: '2. What is a GTIN (Barcode), and why is it required?',
       summary: 'The 12-digit UPC or 13-digit EAN number printed under barcode stripes.',
       content: (
         <div className="space-y-3 text-[14px] text-[#424754]">
           <p>
-            <strong>GTIN</strong> stands for <em>Global Trade Item Number</em>. Shopping channels can use this number to identify equivalent products across stores when a manufacturer-assigned identifier exists.
+            <strong>GTIN</strong> stands for <em>Global Trade Item Number</em>. Google uses this number to identify identical products across thousands of stores.
           </p>
           <p>
-            For branded retail products, supply the genuine UPC or EAN from the manufacturer or your GS1 registration. Requirements depend on the product and channel configuration. A checksum only checks mathematical format; it does not prove ownership or approval.
+            For example, if you sell a Sony camera, Google requires the camera&apos;s UPC so it can group your price alongside other retailers. If your barcode is missing or has a typo (fails the Modulo-10 mathematical check), Google automatically rejects your product from ads.
           </p>
           <p className="bg-[#eaedff] p-3 rounded-xl text-[#0058be] text-[13px] font-medium">
             💡 <strong>Sell custom/handmade goods?</strong> You can set <code className="font-mono">identifier_exists = false</code> to tell Google this is a unique product that doesn&apos;t have a barcode.
@@ -72,7 +72,7 @@ export const BeginnerGuideView: React.FC = () => {
             Shopify lets you type whatever you want into the &quot;Product Category&quot; box. But Google Shopping only understands its official catalog tree.
           </p>
           <p>
-            If you categorize a chef knife as simply &quot;Kitchen&quot;, Google might place your ad under kitchen towels or blenders. Mapping it to <code className="font-mono text-[#0058be]">Home &amp; Garden &gt; Kitchen &amp; Dining &gt; Kitchen Knives (ID: 672)</code> gives the channel a more specific classification signal.
+            If you categorize a chef knife as simply &quot;Kitchen&quot;, Google might place your ad under kitchen towels or blenders. Mapping it to <code className="font-mono text-[#0058be]">Home &amp; Garden &gt; Kitchen &amp; Dining &gt; Kitchen Knives (ID: 672)</code> guarantees the right shoppers see your product.
           </p>
         </div>
       ),
@@ -106,7 +106,7 @@ export const BeginnerGuideView: React.FC = () => {
     },
     {
       term: 'Modulo-10 Checksum',
-      meaning: 'A mathematical check that catches many typing errors. Passing it does not prove GS1 assignment, ownership, or product match.',
+      meaning: 'A mathematical algorithm used by GS1 and Google to verify that a barcode number is authentic and free from typos.',
     },
   ];
 
@@ -196,10 +196,10 @@ export const BeginnerGuideView: React.FC = () => {
         <div className="space-y-2">
           {[
             { key: 'step1', title: 'Run a SKUcoverage catalog audit', desc: 'Identifies all missing barcodes and unmapped categories in seconds.' },
-            { key: 'step2', title: 'Add barcodes (UPC/EAN) to active products', desc: 'Improves identifier data where a genuine manufacturer barcode exists.' },
+            { key: 'step2', title: 'Add barcodes (UPC/EAN) to active products', desc: 'Eliminates automatic rejection on Google Shopping feeds.' },
             { key: 'step3', title: 'Add descriptive image alt text', desc: 'Ranks product photos on Google Images and satisfies accessibility standards.' },
             { key: 'step4', title: 'Verify Google Product Taxonomy categories', desc: 'Prevents wasted ad spend and high CPC bid rates.' },
-            { key: 'step5', title: 'Export the review CSV', desc: 'Review affected fields, update verified values in Shopify, then scan again.' },
+            { key: 'step5', title: 'Export Shopify CSV & re-import into Shopify Admin', desc: 'Applies all fixes with 1-click without manual retyping.' },
           ].map((item) => {
             const isChecked = checklist[item.key];
             return (

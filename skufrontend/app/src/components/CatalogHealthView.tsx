@@ -701,11 +701,11 @@ export const CatalogHealthView: React.FC<CatalogHealthViewProps> = ({
 
             <div className="flex items-center flex-wrap gap-2 w-full lg:w-auto">
               <button
-                onClick={() => onNavigateTab('channel-readiness')}
+                onClick={() => onNavigateTab('barcodes')}
                 className="px-3.5 py-1.5 rounded-full bg-white hover:bg-[#0058be] hover:text-white text-[#ba1a1a] text-[12px] font-bold border border-[#ffdad6] transition-all flex items-center gap-1 cursor-pointer shadow-xs"
               >
                 <span className="material-symbols-outlined text-[15px]">qr_code_2</span>
-                <span>Channel readiness ({barcodeIssueCount})</span>
+                <span>Barcodes ({barcodeIssueCount})</span>
               </button>
 
               <button
@@ -1081,7 +1081,7 @@ export const CatalogHealthView: React.FC<CatalogHealthViewProps> = ({
                     <button
                       onClick={() => {
                         if (onNavigateTab) {
-                          if (step.stepNumber === 1) onNavigateTab('channel-readiness');
+                          if (step.stepNumber === 1) onNavigateTab('barcodes');
                           else if (step.stepNumber === 2) onNavigateTab('seo-images');
                           else if (step.stepNumber === 3) onNavigateTab('categories');
                           else onBatchFix();

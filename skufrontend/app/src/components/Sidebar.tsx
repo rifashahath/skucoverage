@@ -7,7 +7,9 @@ interface SidebarProps {
   isMobileOpen?: boolean;
   onCloseMobile?: () => void;
   issueCounts?: {
-    readiness?: number;
+    gtin?: number;
+    altText?: number;
+    categories?: number;
   };
   storeDomain?: string;
   productsCount?: number;
@@ -18,7 +20,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onSelectTab,
   isMobileOpen,
   onCloseMobile,
-  issueCounts = { readiness: 0 },
+  issueCounts = { gtin: 32, altText: 24, categories: 11 },
   storeDomain,
   productsCount,
 }) => {
@@ -29,16 +31,32 @@ export const Sidebar: React.FC<SidebarProps> = ({
     badge?: string | number;
     badgeColor?: string;
   }[] = [
-    { id: 'dashboard', label: 'Store Overview', icon: 'dashboard' },
     {
-      id: 'channel-readiness',
-      label: 'Channel Readiness',
-      icon: 'campaign',
-      badge: issueCounts.readiness ? `${issueCounts.readiness}` : undefined,
+      id: 'dashboard',
+      label: 'Store Overview',
+      icon: 'dashboard',
+    },
+    {
+      id: 'barcodes',
+      label: 'GTIN & Barcodes',
+      icon: 'qr_code_2',
+      badge: issueCounts.gtin ? `${issueCounts.gtin}` : undefined,
+      badgeColor: 'bg-[#ffdad6] text-[#ba1a1a]',
+    },
+    {
+      id: 'seo-images',
+      label: 'SEO & Alt Text',
+      icon: 'photo_camera',
+      badge: issueCounts.altText ? `${issueCounts.altText}` : undefined,
       badgeColor: 'bg-[#ffddb8] text-[#825100]',
     },
-    { id: 'seo-images', label: 'SEO & Alt Text', icon: 'photo_camera' },
-    { id: 'categories', label: 'Google Categories', icon: 'account_tree' },
+    {
+      id: 'categories',
+      label: 'Google Categories',
+      icon: 'account_tree',
+      badge: issueCounts.categories ? `${issueCounts.categories}` : undefined,
+      badgeColor: 'bg-[#eaedff] text-[#0058be]',
+    },
     {
       id: 'fix-export',
       label: 'Review & Export',
@@ -152,8 +170,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <span className="relative inline-flex rounded-full h-2 w-2 bg-[#006c49]"></span>
           </span>
         </div>
-        <span className="text-[12px] text-[#131b2e] font-bold truncate">{storeDomain || 'No store scanned'}</span>
-        <span className="text-[11px] text-[#006c49] font-semibold">{productsCount ? `${productsCount} products scanned` : 'Run an audit to check readiness'}</span>
+        <span className="text-[12px] text-[#131b2e] font-bold truncate">{storeDomain || 'beststore.myshopify.com'}</span>
+        <span className="text-[11px] text-[#006c49] font-semibold">Feed Ready • {productsCount ? `${productsCount} SKUs` : '248 SKUs'}</span>
       </div>
     </div>
   );

@@ -12,11 +12,11 @@ export const ISSUE_FIX_MAP: Record<string, IssueFixMapping> = {
   },
   missing_gtin: {
     currentState: 'No barcode',
-    suggestedFix: 'Add the genuine manufacturer GTIN in Shopify when one exists; otherwise review identifier_exists rules in the destination channel',
+    suggestedFix: 'Add GTIN/barcode (EAN/UPC) in Shopify',
   },
   invalid_gtin: {
     currentState: 'Invalid GTIN format',
-    suggestedFix: 'Verify the value against packaging, supplier data, or your GS1 record. Length and checksum confirm format only',
+    suggestedFix: 'Format GTIN as 8, 12, 13, or 14 numeric digits with a valid GS1 checksum',
   },
   no_images: {
     currentState: 'No images',

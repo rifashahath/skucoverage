@@ -5,7 +5,7 @@ import { Sidebar } from './components/Sidebar';
 import { CatalogHealthView } from './components/CatalogHealthView';
 import { AuditHistoryView } from './components/AuditHistoryView';
 import { SettingsView } from './components/SettingsView';
-import { ChannelReadinessView } from './components/ChannelReadinessView';
+import { BarcodeInspectorView } from './components/BarcodeInspectorView';
 import { SeoMediaView } from './components/SeoMediaView';
 import { CategoryMapperView } from './components/CategoryMapperView';
 import { FixExportCenterView } from './components/FixExportCenterView';
@@ -24,8 +24,7 @@ const ROUTE_TAB_MAP = {
   '': 'catalog-health',
   'dashboard': 'catalog-health',
   'catalog-health': 'catalog-health',
-  'channel-readiness': 'channel-readiness',
-  'barcodes': 'channel-readiness',
+  'barcodes': 'barcodes',
   'seo-images': 'seo-images',
   'categories': 'categories',
   'fix-export': 'fix-export',
@@ -37,7 +36,7 @@ const ROUTE_TAB_MAP = {
 const TAB_ROUTE_MAP = {
   'catalog-health': '/app',
   'dashboard': '/app',
-  'channel-readiness': '/app/channel-readiness',
+  'barcodes': '/app/barcodes',
   'seo-images': '/app/seo-images',
   'categories': '/app/categories',
   'fix-export': '/app/fix-export',
@@ -885,7 +884,11 @@ export function App() {
           onSelectTab={handleSelectTab}
           isMobileOpen={isMobileSidebarOpen}
           onCloseMobile={() => setIsMobileSidebarOpen(false)}
-          issueCounts={{ readiness: auditData.issues.reduce((sum, issue) => sum + (issue.count || 0), 0) }}
+          issueCounts={{
+            gtin: auditData.issues.filter((i) => i.category === 'gtin' || i.id.includes('gtin')).reduce((sum, i) => sum + (i.count || 0), 0),
+            altText: auditData.issues.filter((i) => i.category === 'alt-text' || i.id.includes('alt') || i.id.includes('image')).reduce((sum, i) => sum + (i.count || 0), 0),
+            categories: auditData.issues.filter((i) => i.category === 'category' || i.id.includes('cat')).reduce((sum, i) => sum + (i.count || 0), 0),
+          }}
           storeDomain={auditData.storeDomain}
           productsCount={auditData.productsCount}
         />
@@ -927,11 +930,12 @@ export function App() {
             )
           )}
 
-          {/* TAB: Google Shopping + Meta channel readiness */}
-          {activeTab === 'channel-readiness' && (
-            <ChannelReadinessView
-              auditData={auditData}
-              onReviewExport={() => handleSelectTab('fix-export')}
+          {/* TAB: GTIN & Barcodes */}
+          {activeTab === 'barcodes' && (
+            <BarcodeInspectorView
+              gtinIssue={auditData.issues.find((i) => i.category === 'gtin' || i.id.includes('gtin'))}
+              onFixItem={handleFixItem}
+              onFixAll={handleFixAllInIssue}
             />
           )}
 
