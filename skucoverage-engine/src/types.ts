@@ -16,6 +16,7 @@ export type Priority = "high" | "medium" | "low"
 export type IssueClass = "eligibility_blocker" | "data_warning" | "growth_opportunity"
 export type Confidence = "high" | "medium" | "low"
 export type FindingStatus = "observed" | "heuristic" | "needs_verification"
+export type ReadinessStatus = "blocker" | "attention" | "verification"
 export type EvidenceSource = "public_storefront" | "merchant_center" | "shopify_admin"
 
 export interface Product {
@@ -94,4 +95,24 @@ export interface FindingSummary {
 	totalFindings: number
 	/** Observed, high-priority, high-confidence findings only. */
 	highPriorityConfirmed: number
+}
+
+export interface ReadinessBucket {
+	/** Sum of per-issue counts: one finding per affected product per issue. */
+	findings: number
+	/** Unique products carrying at least one finding in this bucket. */
+	products: number
+}
+
+export interface ReadinessSummary {
+	scannedProducts: number
+	/** Unique products carrying at least one finding of any status. */
+	affectedProducts: number
+	/** Scanned products with no findings of any status. */
+	readyProducts: number
+	/** Sum of every issue count across all statuses. */
+	totalFindings: number
+	blocker: ReadinessBucket
+	attention: ReadinessBucket
+	verification: ReadinessBucket
 }

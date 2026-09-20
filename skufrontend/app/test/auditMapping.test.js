@@ -119,3 +119,39 @@ test('merchant report keeps advanced detail behind clear progressive disclosure'
   assert.match(source, /Review suggestions/);
   assert.doesNotMatch(source.slice(source.indexOf('Merchant-facing findings'), source.indexOf('Flagged Product Samples')), />Inspect</);
 });
+
+test('readiness unions pass through and older audits get a null fallback', () => {
+  const withReadiness = JSON.parse(JSON.stringify(engineReport));
+  withReadiness.payload.audit.readiness = {
+    scannedProducts: 242,
+    affectedProducts: 200,
+    readyProducts: 42,
+    totalFindings: 364,
+    blocker: { findings: 3, products: 3 },
+    attention: { findings: 119, products: 110 },
+    verification: { findings: 242, products: 242 },
+  };
+  const mapped = mapEngineReportToStoreAudit(withReadiness, 'example.myshopify.com', 'a2');
+  assert.equal(mapped.readiness.affectedProducts, 200);
+  assert.equal(mapped.readiness.verification.findings, 242);
+
+  const legacy = mapEngineReportToStoreAudit(engineReport, 'example.myshopify.com', 'a1');
+  assert.equal(legacy.readiness, null);
+});
+
+test('evidence truncation is explicit instead of silently capped', () => {
+  const data = mapEngineReportToStoreAudit(engineReport, 'example.myshopify.com', 'a1');
+  const gtin = data.issues.find((i) => i.id === 'issue-gtin_status_unverified');
+  assert.equal(gtin.count, 242);
+  assert.equal(gtin.affectedItems.length, 1);
+  assert.equal(gtin.evidenceTruncated, true);
+  const untruncated = JSON.parse(JSON.stringify(engineReport));
+  untruncated.payload.audit.issues = [{
+    type: 'no_images', classification: 'eligibility_blocker', priority: 'high',
+    title: 'No product images', rule: '0 images.', count: 1,
+    affectedProducts: ['gid://shopify/Product/3'], status: 'observed', confidence: 'high',
+    source: 'public_storefront', evidence: [{ productId: 'gid://shopify/Product/3', observed: '0 images', expected: 'At least one image' }],
+  }];
+  const clean = mapEngineReportToStoreAudit(untruncated, 'example.myshopify.com', 'a3');
+  assert.equal(clean.issues[0].evidenceTruncated, false);
+});

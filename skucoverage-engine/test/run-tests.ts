@@ -2,7 +2,7 @@
  * Deterministic engine tests. Run: npx tsx test/run-tests.ts
  */
 import { readFileSync } from "node:fs"
-import { runEngine, issuesToCsv, hasValidGtinCheckDigit } from "../src/engine"
+import { runEngine, issuesToCsv, hasValidGtinCheckDigit, getReadinessStatus } from "../src/engine"
 import type { EngineRequest } from "../src/types"
 
 let passed = 0
@@ -373,6 +373,49 @@ check("product type: single-level value is not flagged without a confident sugge
 check("product type: single-level value receives full credit", sa.scoreBreakdown.categories === 100, sa.scoreBreakdown)
 check("evidence: product identity and source fields are included", sa.issues.every((i: any) => i.evidence.every((e: any) => e.productName && e.variant && e.dataSourceChecked && e.verificationStatus)), sa.issues)
 check("scoring: storefront and Merchant Center distinction is explicit", /storefront quality score/.test(sa.scoring.note) && /not a Merchant Center approval score/.test(sa.scoring.note), sa.scoring)
+
+/* ---- 16. channel readiness summary ---- */
+const readiness = a.readiness
+check("readiness: scanned products", readiness.scannedProducts === 3, readiness)
+check(
+	"readiness: findings reconcile with the issue list",
+	readiness.totalFindings === a.issues.reduce((acc: number, i: any) => acc + i.count, 0) &&
+		readiness.blocker.findings + readiness.attention.findings + readiness.verification.findings === readiness.totalFindings,
+	readiness,
+)
+check(
+	"readiness: unverified GTINs are verification, never blockers",
+	readiness.verification.findings === 2 && readiness.blocker.findings === 1,
+	readiness,
+)
+check(
+	"readiness: unique-product unions per status",
+	readiness.verification.products === 2 &&
+		readiness.blocker.products === 1 &&
+		readiness.attention.products === 2,
+	readiness,
+)
+check(
+	"readiness: products are unions, not finding sums",
+	readiness.affectedProducts === 2 && readiness.readyProducts === 1 &&
+		readiness.affectedProducts < readiness.totalFindings,
+	readiness,
+)
+check(
+	"readiness: status mapping gives verification priority over class",
+	getReadinessStatus({ classification: "eligibility_blocker", status: "needs_verification" }) === "verification" &&
+		getReadinessStatus({ classification: "eligibility_blocker", status: "observed" }) === "blocker" &&
+		getReadinessStatus({ classification: "data_warning", status: "observed" }) === "attention" &&
+		getReadinessStatus({ classification: "growth_opportunity", status: "heuristic" }) === "attention",
+)
+check(
+	"readiness: empty catalog ships a zeroed block",
+	((): boolean => {
+		const empty = runEngine({ messageType: "audit_full_catalog", requestId: "r_empty", payload: { products: [] } })
+		const er = (empty.payload as any).audit.readiness
+		return er.scannedProducts === 0 && er.totalFindings === 0 && er.affectedProducts === 0 && er.readyProducts === 0
+	})(),
+)
 
 console.log(`\n${passed} passed, ${failed} failed`)
 if (failed > 0) process.exit(1)

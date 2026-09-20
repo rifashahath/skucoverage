@@ -1,24 +1,81 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { buildReadinessSignals, getReadinessSummary, validateGtinFormat } from '../src/lib/channelReadiness.js';
+import { readFileSync } from 'node:fs';
+import { buildReadinessSignals, getReadinessSummary, getReadinessStatus, validateGtinFormat } from '../src/lib/channelReadiness.js';
 
 const audit = {
   productsCount: 10,
   issues: [
-    { id: 'missing-title', classification: 'eligibility_blocker', category: 'sku', count: 2, affectedItems: [{ sku: 'A' }, { sku: 'B' }] },
-    { id: 'missing-gtin', classification: 'data_warning', category: 'gtin', count: 3, affectedItems: [{ sku: 'B' }, { sku: 'C' }, { sku: 'D' }] },
+    { id: 'missing-title', classification: 'eligibility_blocker', status: 'observed', category: 'sku', count: 2, affectedItems: [{ sku: 'A' }, { sku: 'B' }] },
+    { id: 'missing-gtin', classification: 'data_warning', status: 'needs_verification', category: 'gtin', count: 3, affectedItems: [{ sku: 'B' }, { sku: 'C' }, { sku: 'D' }] },
+    { id: 'short-title', classification: 'data_warning', status: 'heuristic', category: 'sku', count: 1, affectedItems: [{ sku: 'E' }] },
   ],
 };
 
-test('groups engine issues as channel readiness signals without treating GTIN warnings as blockers', () => {
-  const signals = buildReadinessSignals(audit);
-  assert.equal(signals[0].status, 'blocker');
-  assert.equal(signals[1].status, 'attention');
-  assert.deepEqual(signals[1].channels, ['google', 'meta']);
+test('readiness status keeps GTIN verification out of both blocker and attention', () => {
+  assert.equal(getReadinessStatus({ classification: 'data_warning', status: 'needs_verification' }), 'verification');
+  assert.equal(getReadinessStatus({ classification: 'eligibility_blocker', status: 'needs_verification' }), 'verification');
+  assert.equal(getReadinessStatus({ classification: 'eligibility_blocker', status: 'observed' }), 'blocker');
+  assert.equal(getReadinessStatus({ classification: 'data_warning', status: 'observed' }), 'attention');
+  assert.equal(getReadinessStatus({ classification: 'growth_opportunity', status: 'heuristic' }), 'attention');
 });
 
-test('summary avoids double counting known affected products', () => {
-  assert.deepEqual(getReadinessSummary(audit), { ready: 6, attention: 3, blocker: 2 });
+test('signals carry readiness status, confidence and source labels without hiding the finding status', () => {
+  const signals = buildReadinessSignals(audit);
+  assert.equal(signals[0].readinessStatus, 'blocker');
+  assert.equal(signals[1].readinessStatus, 'verification');
+  assert.equal(signals[1].status, 'needs_verification');
+  assert.equal(signals[2].readinessStatus, 'attention');
+  assert.deepEqual(signals[1].channels, ['google', 'meta']);
+  assert.equal(signals[0].confidenceLabel, 'Medium confidence');
+  assert.equal(signals[0].sourceLabel, 'Public storefront');
+});
+
+test('fallback summary separates blocker, attention and verification with unique-product unions', () => {
+  const summary = getReadinessSummary(audit);
+  assert.equal(summary.exact, false);
+  assert.deepEqual(summary.blocker, { findings: 2, products: 2 });
+  assert.deepEqual(summary.verification, { findings: 3, products: 3 });
+  assert.deepEqual(summary.attention, { findings: 1, products: 1 });
+  assert.equal(summary.totalFindings, 6);
+  assert.equal(summary.affectedProducts, 5);
+  assert.equal(summary.ready, 5);
+  assert.equal(summary.scanned, 10);
+});
+
+test('exact engine readiness numbers win over the estimate', () => {
+  const withReadiness = {
+    ...audit,
+    readiness: {
+      scannedProducts: 10,
+      affectedProducts: 6,
+      readyProducts: 4,
+      totalFindings: 7,
+      blocker: { findings: 2, products: 2 },
+      attention: { findings: 2, products: 2 },
+      verification: { findings: 3, products: 3 },
+    },
+  };
+  const summary = getReadinessSummary(withReadiness);
+  assert.equal(summary.exact, true);
+  assert.equal(summary.affectedProducts, 6);
+  assert.equal(summary.ready, 4);
+  assert.equal(summary.totalFindings, 7);
+  assert.deepEqual(summary.verification, { findings: 3, products: 3 });
+});
+
+test('fallback estimates capped id lists without exceeding the scanned count', () => {
+  const capped = {
+    productsCount: 242,
+    issues: [
+      { id: 'gtin', classification: 'data_warning', status: 'needs_verification', category: 'gtin', count: 242, affectedItems: Array.from({ length: 50 }, (_, i) => ({ sku: `P${i}` })) },
+    ],
+  };
+  const summary = getReadinessSummary(capped);
+  assert.equal(summary.exact, false);
+  assert.equal(summary.verification.findings, 242);
+  assert.equal(summary.affectedProducts, 242);
+  assert.equal(summary.ready, 0);
 });
 
 test('GTIN check validates only supported length and modulo-10 format', () => {
@@ -27,10 +84,27 @@ test('GTIN check validates only supported length and modulo-10 format', () => {
   assert.equal(validateGtinFormat('abc'), false);
 });
 
-test('channel readiness view keeps narrow-screen controls and cards wrap-safe', async () => {
-  const source = await import('node:fs/promises').then(({ readFile }) => readFile(new URL('../src/components/ChannelReadinessView.tsx', import.meta.url), 'utf8'));
-  assert.match(source, /grid-cols-1 min-\[350px\]:grid-cols-3/);
-  assert.match(source, /min-h-11 w-full lg:w-auto/);
-  assert.match(source, /min-\[430px\]:flex-row/);
+test('channel readiness view explains units, statuses and uses real actions', () => {
+  const source = readFileSync(new URL('../src/components/ChannelReadinessView.tsx', import.meta.url), 'utf8');
+  // The count is explained as findings across unique scanned products.
+  assert.match(source, /findings across /);
+  assert.match(source, /scanned products/);
+  // Four clear statuses including needs verification.
+  assert.match(source, /Ready/);
+  assert.match(source, /Needs attention/);
+  assert.match(source, /Needs verification/);
+  assert.match(source, /Potential blockers/);
+  // Status filter offers every readiness bucket.
+  assert.match(source, /<option value="verification">Needs verification<\/option>/);
+  // Findings carry rule, source and confidence.
+  assert.match(source, /Rule: /);
+  assert.match(source, /Source: /);
+  assert.match(source, /confidenceLabel/);
+  // The per-group action opens the evidence drawer; no decorative Fix button.
+  assert.match(source, /Review evidence/);
+  assert.match(source, /onInspectIssue/);
+  assert.doesNotMatch(source, />Fix</);
+  // Existing responsive safeguards are kept.
   assert.match(source, /overflow-x-clip/);
+  assert.match(source, /min-h-11/);
 });

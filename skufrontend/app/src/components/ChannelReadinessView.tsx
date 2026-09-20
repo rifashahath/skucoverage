@@ -1,21 +1,23 @@
 import React, { useMemo, useState } from 'react';
-import { StoreAuditData } from '../types';
-import { buildReadinessSignals, getReadinessSummary, validateGtinFormat } from '../lib/channelReadiness';
+import { StoreAuditData, CatalogIssue } from '../types';
+import {
+  buildReadinessSignals,
+  getReadinessSummary,
+  validateGtinFormat,
+  READINESS_STATUS_META,
+  CHANNEL_LABELS,
+} from '../lib/channelReadiness';
 
 interface ChannelReadinessViewProps {
   auditData: StoreAuditData;
   onReviewExport: () => void;
+  onInspectIssue: (issue: CatalogIssue) => void;
 }
 
 type ChannelFilter = 'all' | 'google' | 'meta';
-type StatusFilter = 'all' | 'blocker' | 'attention';
+type StatusFilter = 'all' | 'blocker' | 'attention' | 'verification';
 
-const statusStyle = {
-  blocker: { label: 'Blocker', classes: 'bg-[#ffdad6] text-[#93000a]', icon: 'error' },
-  attention: { label: 'Needs attention', classes: 'bg-[#ffddb8] text-[#653e00]', icon: 'warning' },
-};
-
-export const ChannelReadinessView: React.FC<ChannelReadinessViewProps> = ({ auditData, onReviewExport }) => {
+export const ChannelReadinessView: React.FC<ChannelReadinessViewProps> = ({ auditData, onReviewExport, onInspectIssue }) => {
   const [channel, setChannel] = useState<ChannelFilter>('all');
   const [status, setStatus] = useState<StatusFilter>('all');
   const [query, setQuery] = useState('');
@@ -25,11 +27,18 @@ export const ChannelReadinessView: React.FC<ChannelReadinessViewProps> = ({ audi
   const cleanQuery = query.trim().toLowerCase();
   const filtered = signals.filter((signal) =>
     (channel === 'all' || signal.channels.includes(channel)) &&
-    (status === 'all' || signal.status === status) &&
+    (status === 'all' || signal.readinessStatus === status) &&
     (!cleanQuery || `${signal.title} ${signal.description} ${signal.fieldLabel} ${signal.affectedProducts.map((item) => `${item.productTitle} ${item.sku}`).join(' ')}`.toLowerCase().includes(cleanQuery))
   );
-  const hasAudit = auditData.productsCount > 0 || signals.length > 0;
+  const hasAudit = (auditData.productsCount > 0 || signals.length > 0) && summary.scanned > 0;
   const gtinResult = gtinInput.trim() ? validateGtinFormat(gtinInput) : null;
+
+  const summaryCards = [
+    { key: 'ready', label: 'Ready', value: summary.ready, unit: 'products', sub: 'No findings detected', icon: 'check_circle', tone: 'text-[#006c49]', bg: 'bg-[#e8fff4]' },
+    { key: 'attention', label: READINESS_STATUS_META.attention.label, value: summary.attention.findings, unit: 'findings', sub: `across ${summary.attention.products} product${summary.attention.products === 1 ? '' : 's'}`, icon: READINESS_STATUS_META.attention.icon, tone: READINESS_STATUS_META.attention.tone, bg: READINESS_STATUS_META.attention.bg, note: READINESS_STATUS_META.attention.note },
+    { key: 'verification', label: READINESS_STATUS_META.verification.label, value: summary.verification.findings, unit: 'findings', sub: `across ${summary.verification.products} product${summary.verification.products === 1 ? '' : 's'}`, icon: READINESS_STATUS_META.verification.icon, tone: READINESS_STATUS_META.verification.tone, bg: READINESS_STATUS_META.verification.bg, note: READINESS_STATUS_META.verification.note },
+    { key: 'blocker', label: 'Potential blockers', value: summary.blocker.findings, unit: 'findings', sub: `across ${summary.blocker.products} product${summary.blocker.products === 1 ? '' : 's'}`, icon: READINESS_STATUS_META.blocker.icon, tone: READINESS_STATUS_META.blocker.tone, bg: READINESS_STATUS_META.blocker.bg, note: READINESS_STATUS_META.blocker.note },
+  ];
 
   return (
     <div className="flex min-w-0 flex-col gap-4 sm:gap-5 overflow-x-clip">
@@ -52,15 +61,30 @@ export const ChannelReadinessView: React.FC<ChannelReadinessViewProps> = ({ audi
             </button>
           </div>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-3 border-t border-[#c2c6d6]/30">
-          {[
-            { label: 'Ready', value: summary.ready, note: 'No current signal', icon: 'check_circle', tone: 'text-[#006c49]', bg: 'bg-[#e8fff4]' },
-            { label: 'Needs attention', value: summary.attention, note: 'Review recommended', icon: 'warning', tone: 'text-[#825100]', bg: 'bg-[#fff4e5]' },
-            { label: 'Potential blockers', value: summary.blocker, note: 'May stop listing use', icon: 'error', tone: 'text-[#ba1a1a]', bg: 'bg-[#fff0ee]' },
-          ].map((item) => (
-            <div key={item.label} className="p-4 min-[390px]:p-5 flex items-center gap-3 border-b sm:border-b-0 sm:border-r last:border-0 border-[#c2c6d6]/30">
-              <span className={`w-10 h-10 rounded-xl ${item.bg} ${item.tone} flex items-center justify-center`}><span className="material-symbols-outlined text-[21px]">{item.icon}</span></span>
-              <div><div className="text-[24px] leading-none font-extrabold text-[#131b2e]">{hasAudit ? item.value : '—'}</div><div className="text-[12px] font-bold text-[#424754] mt-1">{item.label}</div><div className="text-[10px] text-[#727785]">{item.note}</div></div>
+
+        {hasAudit && (
+          <div className="px-4 min-[390px]:px-5 sm:px-7 py-3.5 border-t border-[#c2c6d6]/30 bg-[#faf8ff]">
+            <p className="text-[12px] min-[390px]:text-[13px] leading-5 text-[#424754]">
+              <strong className="text-[#131b2e]">{summary.totalFindings} findings across {summary.affectedProducts} of {summary.scanned} scanned products.</strong>{' '}
+              A finding is one field check flagged on one product. A product can have several findings, so findings usually outnumber products. Each finding is counted once even when it affects both Google and Meta.
+              {!summary.exact && ' Product counts are estimated from the products listed with each finding.'}
+            </p>
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 border-t border-[#c2c6d6]/30">
+          {summaryCards.map((item) => (
+            <div key={item.key} className="p-4 min-[390px]:p-5 flex items-start gap-3 border-b sm:border-b xl:border-b-0 sm:odd:border-r xl:border-r xl:last:border-r-0 border-[#c2c6d6]/30">
+              <span className={`w-10 h-10 rounded-xl ${item.bg} ${item.tone} flex items-center justify-center shrink-0`}><span className="material-symbols-outlined text-[21px]">{item.icon}</span></span>
+              <div className="min-w-0">
+                <div className="flex items-baseline gap-1.5 flex-wrap">
+                  <span className="text-[24px] leading-none font-extrabold text-[#131b2e]">{hasAudit ? item.value : '—'}</span>
+                  {hasAudit && <span className="text-[11px] font-bold text-[#727785]">{item.unit}</span>}
+                </div>
+                <div className="text-[12px] font-bold text-[#424754] mt-1">{item.label}</div>
+                <div className="text-[10px] text-[#727785]">{hasAudit ? item.sub : 'Run an audit first'}</div>
+                {item.note && hasAudit && <div className="text-[10px] text-[#727785] mt-0.5 leading-4">{item.note}</div>}
+              </div>
             </div>
           ))}
         </div>
@@ -69,13 +93,18 @@ export const ChannelReadinessView: React.FC<ChannelReadinessViewProps> = ({ audi
       <section className="bg-white rounded-2xl border border-[#c2c6d6]/40 p-3 min-[390px]:p-4 sm:p-5 shadow-xs">
         <div className="flex min-w-0 flex-col xl:flex-row xl:items-center justify-between gap-3">
           <div aria-label="Filter by channel" className="grid grid-cols-1 min-[350px]:grid-cols-3 gap-2 min-w-0">
-            {([['all', 'All channels'], ['google', 'Google Shopping'], ['meta', 'Meta catalogs']] as const).map(([value, label]) => (
+            {([['all', 'All channels'], ['google', CHANNEL_LABELS.google], ['meta', CHANNEL_LABELS.meta]] as const).map(([value, label]) => (
               <button type="button" aria-pressed={channel === value} key={value} onClick={() => setChannel(value)} className={`min-h-11 min-w-0 px-2 min-[390px]:px-3.5 py-2 rounded-xl min-[500px]:rounded-full text-[11px] min-[390px]:text-[12px] leading-tight font-bold border cursor-pointer ${channel === value ? 'bg-[#0058be] text-white border-[#0058be]' : 'bg-white text-[#424754] border-[#c2c6d6]/60 hover:bg-[#f2f3ff]'}`}>{label}</button>
             ))}
           </div>
           <div className="flex flex-col sm:flex-row gap-2">
             <label className="relative min-w-0 sm:w-64"><span className="material-symbols-outlined pointer-events-none absolute left-3 top-3 text-[18px] text-[#727785]">search</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search field, product or SKU" className="w-full min-h-11 pl-9 pr-3 py-2 rounded-xl sm:rounded-full border border-[#c2c6d6]/60 bg-[#faf8ff] text-[12px] outline-none focus:border-[#0058be]" /></label>
-            <select aria-label="Filter by status" value={status} onChange={(event) => setStatus(event.target.value as StatusFilter)} className="min-h-11 w-full sm:w-auto px-3.5 py-2 rounded-xl sm:rounded-full border border-[#c2c6d6]/60 bg-white text-[12px] font-bold text-[#424754] outline-none cursor-pointer"><option value="all">All statuses</option><option value="blocker">Blockers</option><option value="attention">Needs attention</option></select>
+            <select aria-label="Filter by status" value={status} onChange={(event) => setStatus(event.target.value as StatusFilter)} className="min-h-11 w-full sm:w-auto px-3.5 py-2 rounded-xl sm:rounded-full border border-[#c2c6d6]/60 bg-white text-[12px] font-bold text-[#424754] outline-none cursor-pointer">
+              <option value="all">All statuses</option>
+              <option value="blocker">Potential blockers</option>
+              <option value="attention">Needs attention</option>
+              <option value="verification">Needs verification</option>
+            </select>
           </div>
         </div>
       </section>
@@ -83,20 +112,44 @@ export const ChannelReadinessView: React.FC<ChannelReadinessViewProps> = ({ audi
       {!hasAudit ? (
         <section className="bg-white rounded-2xl border border-dashed border-[#c2c6d6] p-10 text-center"><span className="material-symbols-outlined text-[38px] text-[#727785]">inventory_2</span><h2 className="text-[17px] font-extrabold mt-2">Run a catalog audit first</h2><p className="text-[13px] text-[#727785] mt-1">Channel readiness uses the same scanned product data as Store Overview.</p></section>
       ) : filtered.length === 0 ? (
-        <section className="bg-white rounded-2xl border border-[#c2c6d6]/40 p-8 text-center"><span className="material-symbols-outlined text-[34px] text-[#006c49]">task_alt</span><h2 className="text-[16px] font-extrabold mt-2">No signals match these filters</h2><button onClick={() => { setChannel('all'); setStatus('all'); setQuery(''); }} className="text-[12px] font-bold text-[#0058be] mt-2 cursor-pointer">Clear filters</button></section>
+        <section className="bg-white rounded-2xl border border-[#c2c6d6]/40 p-8 text-center"><span className="material-symbols-outlined text-[34px] text-[#006c49]">task_alt</span><h2 className="text-[16px] font-extrabold mt-2">No findings match these filters</h2><button onClick={() => { setChannel('all'); setStatus('all'); setQuery(''); }} className="text-[12px] font-bold text-[#0058be] mt-2 cursor-pointer">Clear filters</button></section>
       ) : (
         <section className="flex min-w-0 flex-col gap-3">
-          <div><h2 className="text-[17px] min-[390px]:text-[18px] font-extrabold">Affected fields and products</h2><p className="text-[12px] text-[#727785] mt-0.5">{filtered.length} signal{filtered.length === 1 ? '' : 's'} from the current audit</p></div>
+          <div><h2 className="text-[17px] min-[390px]:text-[18px] font-extrabold">Affected fields and products</h2><p className="text-[12px] text-[#727785] mt-0.5">{filtered.length} finding group{filtered.length === 1 ? '' : 's'} from the current audit</p></div>
           {filtered.map((signal) => {
-            const style = statusStyle[signal.status];
+            const style = READINESS_STATUS_META[signal.readinessStatus];
             return <article key={signal.id} className="min-w-0 bg-white rounded-2xl border border-[#c2c6d6]/40 p-3.5 min-[390px]:p-4 sm:p-5 shadow-xs">
               <div className="flex min-w-0 flex-col lg:flex-row lg:items-start justify-between gap-3 lg:gap-4">
-                <div className="flex min-w-0 gap-2.5 min-[390px]:gap-3"><span className="w-9 h-9 min-[390px]:w-10 min-[390px]:h-10 rounded-xl bg-[#f2f3ff] text-[#0058be] flex items-center justify-center shrink-0"><span className="material-symbols-outlined text-[20px]">{signal.icon}</span></span><div className="min-w-0"><div className="flex min-w-0 flex-col items-start gap-1.5 min-[430px]:flex-row min-[430px]:flex-wrap min-[430px]:items-center min-[430px]:gap-2"><h3 className="min-w-0 break-words text-[14px] min-[390px]:text-[15px] leading-5 font-extrabold text-[#131b2e]">{signal.fieldLabel}</h3><span className={`inline-flex shrink-0 items-center gap-1 px-2 py-1 rounded-full text-[10px] font-extrabold ${style.classes}`}><span className="material-symbols-outlined text-[13px]">{style.icon}</span>{style.label}</span></div><p className="text-[13px] font-bold text-[#424754] mt-1">{signal.title}</p><p className="text-[12px] leading-5 text-[#727785] mt-1 max-w-3xl">{signal.description}</p></div></div>
-                <div className="flex flex-wrap items-center gap-2 pl-11 min-[390px]:pl-[52px] lg:pl-0 lg:flex-col lg:items-end shrink-0"><span className="text-[12px] font-bold text-[#131b2e]">{signal.count} affected</span><div className="flex gap-1">{signal.channels.map((item) => <span key={item} className="px-2 py-0.5 rounded-full bg-[#eaedff] text-[#004395] text-[10px] font-bold">{item === 'google' ? 'Google' : 'Meta'}</span>)}</div></div>
+                <div className="flex min-w-0 gap-2.5 min-[390px]:gap-3"><span className="w-9 h-9 min-[390px]:w-10 min-[390px]:h-10 rounded-xl bg-[#f2f3ff] text-[#0058be] flex items-center justify-center shrink-0"><span className="material-symbols-outlined text-[20px]">{signal.icon}</span></span><div className="min-w-0">
+                  <div className="flex min-w-0 flex-col items-start gap-1.5 min-[430px]:flex-row min-[430px]:flex-wrap min-[430px]:items-center min-[430px]:gap-2">
+                    <h3 className="min-w-0 break-words text-[14px] min-[390px]:text-[15px] leading-5 font-extrabold text-[#131b2e]">{signal.fieldLabel}</h3>
+                    <span className={`inline-flex shrink-0 items-center gap-1 px-2 py-1 rounded-full text-[10px] font-extrabold ${style.classes}`}><span className="material-symbols-outlined text-[13px]">{style.icon}</span>{style.label}</span>
+                    <span className="inline-flex shrink-0 items-center px-2 py-1 rounded-full text-[10px] font-extrabold bg-[#f2f3ff] text-[#424754] border border-[#c2c6d6]/40">{signal.confidenceLabel}</span>
+                  </div>
+                  <p className="text-[13px] font-bold text-[#424754] mt-1.5">{signal.title}</p>
+                  {signal.rule ? <p className="text-[12px] leading-5 text-[#131b2e] mt-1 max-w-3xl"><span className="font-bold">Rule: </span>{signal.rule}</p> : null}
+                  <p className="text-[12px] leading-5 text-[#727785] mt-1 max-w-3xl">{signal.description}</p>
+                  <p className="text-[11px] font-semibold text-[#727785] mt-1.5">Source: {signal.sourceLabel}</p>
+                </div></div>
+                <div className="flex flex-wrap items-center gap-2 pl-11 min-[390px]:pl-[52px] lg:pl-0 lg:flex-col lg:items-end shrink-0">
+                  <span className="text-[12px] font-bold text-[#131b2e]">{signal.count} product{signal.count === 1 ? '' : 's'} affected</span>
+                  <div className="flex gap-1">{signal.channels.map((item) => <span key={item} className="px-2 py-0.5 rounded-full bg-[#eaedff] text-[#004395] text-[10px] font-bold">{item === 'google' ? 'Google' : 'Meta'}</span>)}</div>
+                </div>
               </div>
-              <div className="mt-3 min-[390px]:mt-4 pt-3 min-[390px]:pt-4 border-t border-[#c2c6d6]/25 grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-3 lg:items-center">
-                <div className="text-[12px] text-[#424754]"><span className="font-extrabold text-[#131b2e]">Guidance: </span>{signal.affectedProducts[0]?.suggestedFix || 'Review this field in Shopify and compare it with the channel catalog requirements for this product.'}</div>
-                {signal.affectedProducts.length > 0 && <div className="flex gap-1.5 flex-wrap">{signal.affectedProducts.slice(0, 3).map((product) => <span key={`${signal.id}-${product.sku}`} className="max-w-full break-all px-2 py-1 rounded-lg bg-[#faf8ff] border border-[#c2c6d6]/30 text-[10px] font-mono text-[#424754]">{product.productTitle || `Product ${product.sku}`}</span>)}{signal.affectedProducts.length > 3 && <span className="px-2 py-1 text-[10px] font-bold text-[#727785]">+{signal.affectedProducts.length - 3} more</span>}</div>}
+              <div className="mt-3 min-[390px]:mt-4 pt-3 min-[390px]:pt-4 border-t border-[#c2c6d6]/25 flex min-w-0 flex-col gap-3">
+                <div className="text-[12px] text-[#424754] min-w-0">
+                  <span className="font-extrabold text-[#131b2e]">Guidance: </span>{signal.affectedProducts[0]?.suggestedFix || 'Review this field in Shopify and compare it with the channel catalog requirements for this product.'}
+                  {signal.evidenceTruncated && <span className="block text-[11px] text-[#727785] mt-1">Evidence lists the first {signal.affectedProducts.length} of {signal.count} affected products.</span>}
+                </div>
+                <div className="flex min-w-0 flex-wrap items-center gap-2">
+                  {signal.affectedProducts.length > 0 && <div className="flex min-w-0 flex-1 basis-48 gap-1.5 flex-wrap items-center">{signal.affectedProducts.slice(0, 3).map((product) => <span key={`${signal.id}-${product.sku}`} className="inline-block max-w-[180px] truncate px-2 py-1 rounded-lg bg-[#faf8ff] border border-[#c2c6d6]/30 text-[10px] font-mono text-[#424754]">{product.productTitle || `Product ${product.sku}`}</span>)}{signal.affectedProducts.length > 3 && <span className="px-2 py-1 text-[10px] font-bold text-[#727785]">+{signal.affectedProducts.length - 3} more</span>}</div>}
+                  {signal.affectedProducts.length > 0 && (
+                    <button type="button" onClick={() => onInspectIssue(signal)} className="inline-flex min-h-11 items-center justify-center gap-1.5 px-4 py-2 rounded-full bg-white hover:bg-[#0058be] text-[#0058be] hover:text-white text-[12px] font-bold border border-[#0058be]/30 transition-colors cursor-pointer shrink-0">
+                      <span className="material-symbols-outlined text-[16px]">fact_check</span>
+                      Review evidence
+                    </button>
+                  )}
+                </div>
               </div>
             </article>;
           })}
