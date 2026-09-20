@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { StoreAuditData, CatalogIssue, FlaggedProduct, NavigationTab } from '../types';
 
 interface CatalogHealthViewProps {
@@ -27,7 +27,8 @@ export const CatalogHealthView: React.FC<CatalogHealthViewProps> = ({
   onNavigateTab,
 }) => {
   const [storeInput, setStoreInput] = useState(auditData?.storeDomain || '');
-  const [scanStep, setScanStep] = useState<1 | 2 | 3>(2);
+  const [scanStep] = useState<1 | 2 | 3>(2);
+  const [findingFilter, setFindingFilter] = useState<'all' | 'confirmed' | 'verify' | 'improvements'>('all');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -672,230 +673,65 @@ export const CatalogHealthView: React.FC<CatalogHealthViewProps> = ({
         </div>
       </section>
 
-      <section className="bg-white rounded-2xl p-5 border border-[#c2c6d6]/40 shadow-xs">
-        <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
+      {/* Merchant-first summary: the result in plain language before any detail. */}
+      <section className="rounded-[20px] border border-[#c2c6d6]/40 bg-gradient-to-br from-white to-[#f2f3ff] p-5 sm:p-6 shadow-xs">
+        <div className="flex items-start gap-3">
+          <span className={`material-symbols-outlined mt-0.5 text-[24px] ${findingSummary.confirmedIssues > 0 ? 'text-[#ba1a1a]' : 'text-[#006c49]'}`}>
+            {findingSummary.confirmedIssues > 0 ? 'warning' : 'check_circle'}
+          </span>
           <div>
-            <div className="text-[11px] font-bold uppercase tracking-wider text-[#0058be]">Scan coverage receipt</div>
-            <h2 className="text-[17px] font-extrabold text-[#131b2e] mt-1">Public storefront snapshot</h2>
-            <p className="text-[13px] text-[#424754] mt-1">Assessed {auditData.scanned ?? auditData.productsCount} products returned by the public storefront feed. This is best-effort coverage, not proof of the full Shopify catalog.</p>
+            <div className="text-[11px] font-bold uppercase tracking-wider text-[#0058be]">Your audit summary</div>
+            <h2 className="mt-1 text-[20px] font-extrabold leading-snug text-[#131b2e] sm:text-[24px]">
+              {findingSummary.confirmedIssues === 0
+                ? 'No confirmed storefront errors found.'
+                : `${findingSummary.confirmedIssues} confirmed storefront ${findingSummary.confirmedIssues === 1 ? 'issue' : 'issues'} found.`}
+            </h2>
+            <p className="mt-2 text-[14px] leading-relaxed text-[#424754]">
+              {findingSummary.verificationItems} {findingSummary.verificationItems === 1 ? 'product needs' : 'products need'} verification.{' '}
+              {findingSummary.opportunities} possible {findingSummary.opportunities === 1 ? 'improvement was' : 'improvements were'} found.
+            </p>
           </div>
-          <span className="px-3 py-1 rounded-full bg-[#fff4e5] text-[#825100] text-[11px] font-bold shrink-0">Not authoritative</span>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4 text-[12px]">
-          <div className="rounded-xl bg-[#f2f3ff] p-3"><strong className="text-[#131b2e]">Included:</strong> public product fields, first-variant identifiers, images, titles, descriptions and product type.</div>
-          <div className="rounded-xl bg-[#faf8ff] p-3"><strong className="text-[#131b2e]">Not included:</strong> Merchant Center diagnostics, unpublished/inaccessible products, and GS1 assignment ownership.</div>
         </div>
       </section>
 
-      {/* Beginner-Friendly Quick Navigation Banner */}
-      {onNavigateTab && (() => {
-        const barcodeIssueCount = auditData.issues.find(i => i.category === 'gtin' || i.id.includes('gtin'))?.count ?? auditData.highPriorityCount;
-        const altIssueCount = auditData.issues.find(i => i.category === 'alt' || i.id.includes('alt') || i.category === 'images')?.count ?? 0;
-        const catIssueCount = auditData.issues.find(i => i.category === 'category' || i.category === 'taxonomy' || i.id.includes('cat'))?.count ?? 0;
-
-        return (
-          <section className="bg-gradient-to-r from-[#eaedff] to-[#f2f3ff] rounded-2xl p-4 sm:p-5 border border-[#c2c6d6]/40 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-white text-[#0058be] flex items-center justify-center shadow-xs shrink-0">
-                <span className="material-symbols-outlined text-[22px]">explore</span>
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="text-[14px] font-extrabold text-[#131b2e]">
-                    Quick Fix Guide (Step-by-Step Sections)
-                  </span>
-                  <span className="px-2 py-0.5 rounded-full bg-white text-[#0058be] text-[10px] font-bold border border-[#0058be]/20">
-                    Easy to understand
-                  </span>
-                </div>
-                <p className="text-[12px] text-[#424754]">
-                  We organized your fixes into dedicated sections so you can review and resolve them easily:
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center flex-wrap gap-2 w-full lg:w-auto">
-              <button
-                onClick={() => onNavigateTab('channel-readiness')}
-                className="px-3.5 py-1.5 rounded-full bg-white hover:bg-[#0058be] hover:text-white text-[#ba1a1a] text-[12px] font-bold border border-[#ffdad6] transition-all flex items-center gap-1 cursor-pointer shadow-xs"
-              >
-                <span className="material-symbols-outlined text-[15px]">qr_code_2</span>
-                <span>Channel readiness ({barcodeIssueCount})</span>
-              </button>
-
-              <button
-                onClick={() => onNavigateTab('seo-images')}
-                className="px-3.5 py-1.5 rounded-full bg-white hover:bg-[#0058be] hover:text-white text-[#825100] text-[12px] font-bold border border-[#ffddb8] transition-all flex items-center gap-1 cursor-pointer shadow-xs"
-              >
-                <span className="material-symbols-outlined text-[15px]">photo_camera</span>
-                <span>Alt Text ({altIssueCount})</span>
-              </button>
-
-              <button
-                onClick={() => onNavigateTab('categories')}
-                className="px-3.5 py-1.5 rounded-full bg-white hover:bg-[#0058be] hover:text-white text-[#0058be] text-[12px] font-bold border border-[#eaedff] transition-all flex items-center gap-1 cursor-pointer shadow-xs"
-              >
-                <span className="material-symbols-outlined text-[15px]">account_tree</span>
-                <span>Categories ({catIssueCount})</span>
-              </button>
-
-              <button
-                onClick={() => onNavigateTab('fix-export')}
-                className="px-3.5 py-1.5 rounded-full bg-[#0058be] hover:bg-[#2170e4] text-white text-[12px] font-bold transition-all flex items-center gap-1 cursor-pointer shadow-xs"
-              >
-                <span className="material-symbols-outlined text-[15px]">file_download</span>
-                <span>Fix &amp; Export Center</span>
-              </button>
-
-              <button
-                onClick={() => onNavigateTab('quick-guide')}
-                className="px-3 py-1.5 rounded-full bg-transparent hover:bg-white text-[#424754] text-[12px] font-bold transition-all flex items-center gap-1 cursor-pointer"
-              >
-                <span className="material-symbols-outlined text-[15px]">help_outline</span>
-                <span>Beginner&apos;s Guide</span>
-              </button>
-            </div>
-          </section>
-        );
-      })()}
-
-      {/* 4 Metric Tiles in a Row */}
-      <section className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6 gap-4">
-        {/* Tile 1: Catalog quality score */}
-        <div className="bg-[#f2f3ff] p-6 rounded-[14px] flex flex-col justify-between shadow-xs">
+      {/* Four decisions merchants need first. Confirmed and total stay secondary unless action is required. */}
+      <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="rounded-[14px] bg-[#f2f3ff] p-5 shadow-xs">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-[#727785]">
-              Health Score
-            </span>
-            <span className="w-8 h-8 rounded-full bg-[#ffddb8] flex items-center justify-center text-[#825100]">
-              <span className="material-symbols-outlined text-[18px]">analytics</span>
-            </span>
+            <span className="text-[11px] font-bold uppercase tracking-wider text-[#727785]">Health score</span>
+            <span className="material-symbols-outlined text-[20px] text-[#825100]">analytics</span>
           </div>
-          <div className="mt-4 flex items-baseline gap-1">
-            <span className="text-[40px] font-extrabold text-[#825100] leading-none">
-              {auditData.healthScore}
-            </span>
-            <span className="text-[20px] font-bold text-[#825100]">/100</span>
-          </div>
-          <div className="mt-2 flex items-center gap-1 text-[#727785] text-[12px]">
-            <span className={`material-symbols-outlined text-[16px] ${
-              auditData.healthScore >= 85 ? 'text-[#006c49]' : auditData.healthScore >= 65 ? 'text-[#825100]' : 'text-[#ba1a1a]'
-            }`}>
-              {auditData.healthScore >= 85 ? 'check_circle' : auditData.healthScore >= 65 ? 'info' : 'warning'}
-            </span>
-            <span className="font-medium">{auditData.scoreStatus}</span>
-          </div>
-          <button
-            type="button"
-            onClick={onOpenAuditScope}
-            className="mt-2 text-left text-[11px] font-semibold text-[#0058be] hover:underline cursor-pointer"
-          >
-            How this score is calculated
-          </button>
+          <div className="mt-4 flex items-baseline gap-1"><span className="text-[40px] font-extrabold leading-none text-[#825100]">{auditData.healthScore}</span><span className="text-[18px] font-bold text-[#825100]">/100</span></div>
+          <div className="mt-2 text-[12px] text-[#727785]">{auditData.scoreStatus} storefront quality</div>
         </div>
+        <div className="rounded-[14px] bg-[#f2f3ff] p-5 shadow-xs">
+          <div className="flex items-center justify-between"><span className="text-[11px] font-bold uppercase tracking-wider text-[#727785]">Products reviewed</span><span className="material-symbols-outlined text-[20px] text-[#0058be]">inventory_2</span></div>
+          <div className="mt-4 flex items-baseline gap-1"><span className="text-[40px] font-extrabold leading-none text-[#131b2e]">{auditData.productsCount}</span><span className="text-[14px] font-semibold text-[#727785]">products</span></div>
+          <div className="mt-2 text-[12px] text-[#727785]">Public storefront snapshot</div>
+        </div>
+        <div className="rounded-[14px] border border-[#0058be]/10 bg-[#edf3ff] p-5 shadow-xs">
+          <div className="flex items-center justify-between"><span className="text-[11px] font-bold uppercase tracking-wider text-[#004395]">Needs verification</span><span className="material-symbols-outlined text-[20px] text-[#004395]">fact_check</span></div>
+          <div className="mt-4 flex items-baseline gap-1"><span className="text-[40px] font-extrabold leading-none text-[#004395]">{findingSummary.verificationItems}</span><span className="text-[14px] font-semibold text-[#004395]">to review</span></div>
+          <div className="mt-2 text-[12px] text-[#424754]">Not confirmed errors</div>
+        </div>
+        <div className="rounded-[14px] border border-[#825100]/10 bg-[#fff8ed] p-5 shadow-xs">
+          <div className="flex items-center justify-between"><span className="text-[11px] font-bold uppercase tracking-wider text-[#825100]">Suggested improvements</span><span className="material-symbols-outlined text-[20px] text-[#825100]">tips_and_updates</span></div>
+          <div className="mt-4 flex items-baseline gap-1"><span className="text-[40px] font-extrabold leading-none text-[#825100]">{findingSummary.opportunities}</span><span className="text-[14px] font-semibold text-[#825100]">suggestions</span></div>
+          <div className="mt-2 text-[12px] text-[#424754]">Possible improvements</div>
+        </div>
+      </section>
 
-        {/* Tile 2: Products Audited */}
-        <div className="bg-[#f2f3ff] p-6 rounded-[14px] flex flex-col justify-between shadow-xs">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-[#727785]">
-              Products Reviewed
-            </span>
-            <span className="w-8 h-8 rounded-full bg-[#eaedff] flex items-center justify-center text-[#0058be]">
-              <span className="material-symbols-outlined text-[18px]">inventory_2</span>
-            </span>
+      <section className={`rounded-2xl border p-4 sm:p-5 ${findingSummary.confirmedIssues > 0 ? 'border-[#ba1a1a]/20 bg-[#fff4f2]' : 'border-[#c2c6d6]/40 bg-white'}`}>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div className="text-[13px] text-[#424754]">
+            <strong className="text-[#131b2e]">{findingSummary.confirmedIssues} confirmed</strong> · {findingSummary.verificationItems} to verify · {findingSummary.opportunities} suggested improvements
           </div>
-          <div className="mt-4 flex items-baseline gap-1">
-            <span className="text-[40px] font-extrabold text-[#131b2e] leading-none">
-              {auditData.productsCount}
-            </span>
-            <span className="text-[14px] font-semibold text-[#727785]">products</span>
-          </div>
-          <div className="mt-2 flex items-center gap-1 text-[#727785] text-[12px]">
-            {auditData.limitReached ? (
-              <>
-                <span className="material-symbols-outlined text-[16px] text-[#825100]">info</span>
-                <span>Plan limit reached ({auditData.productsCount} items)</span>
-              </>
-            ) : (
-              <>
-                <span className="material-symbols-outlined text-[16px] text-[#006c49]">check_circle</span>
-                <span>Public storefront snapshot analyzed</span>
-              </>
-            )}
-          </div>
+          <div className="text-[12px] font-semibold text-[#727785]">{findingSummary.totalFindings} total findings</div>
         </div>
-
-        {/* Tile 3: Confirmed Issues */}
-        <div className="bg-[#f2f3ff] p-6 rounded-[14px] flex flex-col justify-between shadow-xs">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-[#727785]">
-              Confirmed Issues
-            </span>
-            <span className="w-8 h-8 rounded-full bg-[#ffdad6] flex items-center justify-center text-[#ba1a1a]">
-              <span className="material-symbols-outlined text-[18px]">bug_report</span>
-            </span>
-          </div>
-          <div className="mt-4 flex items-baseline gap-1">
-            <span className="text-[40px] font-extrabold text-[#ba1a1a] leading-none">
-              {findingSummary.confirmedIssues}
-            </span>
-            <span className="text-[14px] font-semibold text-[#ba1a1a]">confirmed</span>
-          </div>
-          <div className="mt-2 flex items-center gap-1 text-[#727785] text-[12px]">
-            <span>{findingSummary.highPriorityConfirmed} high priority · observed in the storefront snapshot</span>
-          </div>
-        </div>
-
-        {/* Tile 4: Needs Verification */}
-        <div className="bg-[#f2f3ff] p-6 rounded-[14px] flex flex-col justify-between shadow-xs">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-[#727785]">
-              Needs Verification
-            </span>
-            <span className="w-8 h-8 rounded-full bg-[#d8e2ff] text-[#004395] flex items-center justify-center">
-              <span className="material-symbols-outlined text-[18px]">fact_check</span>
-            </span>
-          </div>
-          <div className="mt-4 flex items-baseline gap-1">
-            <span className="text-[40px] font-extrabold text-[#004395] leading-none">
-              {findingSummary.verificationItems}
-            </span>
-            <span className="text-[14px] font-semibold text-[#004395]">to verify</span>
-          </div>
-          <div className="mt-2 flex items-center gap-1 text-[#727785] text-[12px]">
-            <span>Not evidence of a problem; the public storefront cannot confirm these</span>
-          </div>
-        </div>
-
-        {/* Tile 5: Optimization Opportunities */}
-        <div className="bg-[#f2f3ff] p-6 rounded-[14px] flex flex-col justify-between shadow-xs">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-[#727785]">Optimization Opportunities</span>
-            <span className="w-8 h-8 rounded-full bg-[#ffddb8] text-[#825100] flex items-center justify-center">
-              <span className="material-symbols-outlined text-[18px]">tips_and_updates</span>
-            </span>
-          </div>
-          <div className="mt-4 flex items-baseline gap-1">
-            <span className="text-[40px] font-extrabold text-[#825100] leading-none">{findingSummary.opportunities}</span>
-            <span className="text-[14px] font-semibold text-[#825100]">instances</span>
-          </div>
-          <div className="mt-2 text-[#727785] text-[12px]">Possible improvements, not definite errors</div>
-        </div>
-
-        {/* Tile 6: Total Findings */}
-        <div className="bg-[#f2f3ff] p-6 rounded-[14px] flex flex-col justify-between shadow-xs">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-[#727785]">Total Findings</span>
-            <span className="w-8 h-8 rounded-full bg-[#eaddff] text-[#5b3c88] flex items-center justify-center">
-              <span className="material-symbols-outlined text-[18px]">calculate</span>
-            </span>
-          </div>
-          <div className="mt-4 flex items-baseline gap-1">
-            <span className="text-[40px] font-extrabold text-[#5b3c88] leading-none">{findingSummary.totalFindings}</span>
-            <span className="text-[14px] font-semibold text-[#5b3c88]">instances</span>
-          </div>
-          <div className="mt-2 text-[#727785] text-[12px]">Confirmed + verification + opportunities</div>
-        </div>
+        <details className="mt-3 border-t border-[#c2c6d6]/30 pt-3 text-[12px] text-[#424754]">
+          <summary className="cursor-pointer font-semibold text-[#0058be]">What was reviewed</summary>
+          <p className="mt-2">Assessed {auditData.scanned ?? auditData.productsCount} products returned by the public storefront feed. This best-effort snapshot does not include Merchant Center diagnostics, inaccessible products, or GS1 ownership data.</p>
+        </details>
       </section>
 
       {/* Large White Main Result Card */}
@@ -959,8 +795,9 @@ export const CatalogHealthView: React.FC<CatalogHealthViewProps> = ({
             </span>
           </div>
 
-          <div className="rounded-xl border border-[#c2c6d6]/40 bg-[#faf8ff] p-4 text-[12px] text-[#424754]">
-            <div className="font-bold text-[#131b2e]">How the score works</div>
+          <details className="rounded-xl border border-[#c2c6d6]/40 bg-[#faf8ff] p-4 text-[12px] text-[#424754]">
+            <summary className="cursor-pointer font-bold text-[#0058be]">How this score is calculated</summary>
+            <div className="mt-3 font-bold text-[#131b2e]">Unverified fields don&apos;t lower your score</div>
             <p className="mt-1 font-semibold text-[#131b2e]">
               {auditData.healthScore}/100 is a storefront quality score, not a Merchant Center approval score.
             </p>
@@ -981,7 +818,7 @@ export const CatalogHealthView: React.FC<CatalogHealthViewProps> = ({
                 : 'Attribute scores measure field quality, while finding counts measure how many reviewed products matched a rule.'}{' '}
               The score is calculated from product fields, not issue-instance counts. Each bar names the field actually observed. This is not a pass rate, Google-category score, image-resolution check, or Merchant Center verdict.
             </p>
-          </div>
+          </details>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-[#f2f3ff] rounded-2xl">
             {auditData.attributeBreakdown.map((attr) => {
@@ -1017,125 +854,81 @@ export const CatalogHealthView: React.FC<CatalogHealthViewProps> = ({
           </div>
         </section>
 
-        {/* Findings Section: grouped so the headline total reconciles visibly */}
+        {/* Merchant-facing findings. Product-level evidence stays in the drawer. */}
         <section className="flex flex-col gap-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
-            <h2 className="text-[18px] font-bold text-[#131b2e]">
-              All findings ({findingSummary.totalFindings})
-            </h2>
-            <span className="text-[12px] text-[#424754]">
-              Total findings: {findingSummary.totalFindings} = {findingSummary.verificationItems} verification items + {findingSummary.opportunities} optimization opportunities + {findingSummary.confirmedIssues} confirmed issues · one product can appear in several findings
-            </span>
-          </div>
-
-          <div className="rounded-xl border border-[#c2c6d6]/40 bg-[#faf8ff] p-4 text-[12px] text-[#424754]">
-            <div className="font-bold text-[#131b2e]">Optimization calculation</div>
-            {opportunityIssuesList.length > 0 ? (
-              <div className="mt-1 flex flex-col gap-1">
-                {opportunityIssuesList.map((issue) => (
-                  <span key={`calc-${issue.id}`}>{issue.count} {issue.title.toLowerCase()} opportunities</span>
-                ))}
-                <span className="font-bold text-[#131b2e]">= {findingSummary.opportunities} optimization opportunities</span>
-              </div>
-            ) : (
-              <span className="mt-1 block">0 optimization opportunities</span>
-            )}
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+              <h2 className="text-[18px] font-bold text-[#131b2e]">Findings</h2>
+              <p className="mt-1 text-[12px] text-[#424754]">Choose a group, then open it to review the affected products and evidence.</p>
+            </div>
+            <div className="grid grid-cols-2 gap-2 sm:flex" role="group" aria-label="Filter findings">
+              {[
+                { key: 'all', label: `All (${findingSummary.totalFindings})` },
+                { key: 'confirmed', label: `Confirmed (${findingSummary.confirmedIssues})` },
+                { key: 'verify', label: `Verify (${findingSummary.verificationItems})` },
+                { key: 'improvements', label: `Improvements (${findingSummary.opportunities})` },
+              ].map((filter) => (
+                <button
+                  key={filter.key}
+                  type="button"
+                  aria-pressed={findingFilter === filter.key}
+                  onClick={() => setFindingFilter(filter.key as typeof findingFilter)}
+                  className={`min-h-10 rounded-full px-3 py-2 text-[11px] font-bold transition-colors sm:text-[12px] ${findingFilter === filter.key ? 'bg-[#0058be] text-white' : 'bg-[#f2f3ff] text-[#424754] hover:bg-[#e2e7ff]'}`}
+                >
+                  {filter.label}
+                </button>
+              ))}
+            </div>
           </div>
 
           {[
-            {
-              key: 'confirmed',
-              heading: 'Confirmed issues',
-              count: findingSummary.confirmedIssues,
-              caption: 'Observed directly in the public storefront snapshot.',
-              list: confirmedIssuesList,
-            },
-            {
-              key: 'verify',
-              heading: 'Needs verification',
-              count: findingSummary.verificationItems,
-              caption: 'Cannot be confirmed from a public storefront. Not evidence of a problem.',
-              list: verificationIssuesList,
-            },
-            {
-              key: 'opportunities',
-              heading: 'Optimization opportunities',
-              count: findingSummary.opportunities,
-              caption: 'Heuristic quality signals, not definite errors.',
-              list: opportunityIssuesList,
-            },
+            { key: 'confirmed', filter: 'confirmed', heading: 'Confirmed issues', count: findingSummary.confirmedIssues, caption: 'Problems observed directly in the storefront data.', action: 'Review confirmed issues', list: confirmedIssuesList },
+            { key: 'verify', filter: 'verify', heading: 'Needs verification', count: findingSummary.verificationItems, caption: 'The public storefront could not confirm these. They are not proven errors.', action: 'Review GTINs', list: verificationIssuesList },
+            { key: 'improvements', filter: 'improvements', heading: 'Suggested improvements', count: findingSummary.opportunities, caption: 'Possible ways to improve product data, not definite errors.', action: 'Review suggestions', list: opportunityIssuesList },
           ]
+            .filter((group) => findingFilter === 'all' || findingFilter === group.filter)
             .map((group) => (
-              <div key={group.key} className="flex flex-col gap-2">
-                <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-0.5">
-                  <h3 className="text-[14px] font-extrabold text-[#131b2e]">
-                    {group.heading} ({group.count})
-                  </h3>
-                  <span className="text-[11px] text-[#727785]">{group.caption}</span>
+              <div key={group.key} className="overflow-hidden rounded-2xl border border-[#c2c6d6]/40 bg-white">
+                <div className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
+                  <div>
+                    <h3 className="text-[15px] font-extrabold text-[#131b2e]">{group.heading} <span className="text-[#727785]">({group.count})</span></h3>
+                    <p className="mt-1 text-[12px] text-[#424754]">{group.caption}</p>
+                  </div>
+                  {group.list.length > 0 ? (
+                    <button type="button" onClick={() => onInspectIssue(group.list[0])} className="min-h-10 shrink-0 rounded-full bg-[#0058be] px-4 py-2 text-[12px] font-bold text-white hover:bg-[#2170e4]">
+                      {group.action}
+                    </button>
+                  ) : (
+                    <span className="inline-flex min-h-10 items-center rounded-full bg-[#eef9f3] px-4 text-[12px] font-bold text-[#006c49]">Nothing to review</span>
+                  )}
                 </div>
-
-                {group.list.length === 0 ? (
-                  <div className="rounded-[14px] bg-[#f2f3ff] p-4 text-[12px] text-[#727785]">0 findings in this group</div>
-                ) : null}
-                {group.list.map((issue) => {
-                  const badgeStyle = {
-                    HIGH: 'bg-[#ffdad6] text-[#93000a]',
-                    MEDIUM: 'bg-[#ffddb8] text-[#653e00]',
-                    LOW: 'bg-[#d8e2ff] text-[#004395]',
-                  }[issue.severity];
-
-                  const countColor = {
-                    HIGH: 'text-[#ba1a1a]',
-                    MEDIUM: 'text-[#825100]',
-                    LOW: 'text-[#0058be]',
-                  }[issue.severity];
-
-                  const countLabel =
-                    issue.status === 'needs_verification'
-                      ? 'to verify'
-                      : issue.status === 'heuristic'
-                        ? 'opportunities'
-                        : 'instances';
-
-                  return (
-                    <div
-                      key={issue.id}
-                      className="bg-[#f2f3ff] p-4 rounded-[14px] flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-[#eaedff] transition-colors"
-                    >
-                      <div className="flex items-center gap-4">
-                        <span className={`px-3 py-1 rounded-full text-[11px] font-bold uppercase shrink-0 ${badgeStyle}`}>
-                          {issue.status === 'needs_verification' ? 'VERIFY' : issue.status === 'heuristic' ? 'HEURISTIC' : issue.severity}
-                        </span>
-                        <div className="flex flex-col">
-                          <span className="text-[15px] text-[#131b2e] font-bold">{issue.title}</span>
-                          {issue.rule ? (
-                            <span className="text-[12px] text-[#131b2e] font-medium">Rule: {issue.rule}</span>
-                          ) : null}
-                          <span className="text-[12px] text-[#424754]">{issue.description}</span>
-                          <span className="mt-1 text-[10px] font-semibold uppercase tracking-wide text-[#727785]">
-                            {issue.source === 'public_storefront' ? 'Public storefront' : issue.source} · {issue.confidence ?? 'medium'} confidence
-                          </span>
+                {group.list.length > 0 && (
+                  <div className="border-t border-[#c2c6d6]/30 bg-[#f8f9ff] px-4 py-2 sm:px-5">
+                    {group.list.map((issue) => (
+                      <div key={issue.id} className="flex flex-col gap-1 border-b border-[#c2c6d6]/20 py-3 last:border-b-0 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="min-w-0">
+                          <div className="text-[13px] font-bold text-[#131b2e]">{issue.title}</div>
+                          <div className="line-clamp-2 text-[11px] text-[#727785]">{issue.description}</div>
                         </div>
+                        <span className="shrink-0 text-[12px] font-bold text-[#424754]">{issue.count} {issue.status === 'needs_verification' ? 'to verify' : issue.status === 'heuristic' ? 'suggestions' : 'findings'}</span>
                       </div>
-
-                      <div className="flex items-center gap-6 self-end md:self-auto">
-                        <span className={`text-[14px] font-bold ${countColor}`}>
-                          {issue.count} {countLabel}
-                        </span>
-                        <button
-                          onClick={() => onInspectIssue(issue)}
-                          className="text-[12px] font-bold text-[#0058be] hover:underline flex items-center gap-0.5 cursor-pointer"
-                          type="button"
-                        >
-                          <span>Inspect</span>
-                          <span className="material-symbols-outlined text-[16px]">chevron_right</span>
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
+                    ))}
+                  </div>
+                )}
               </div>
             ))}
+
+          <details className="rounded-xl bg-[#faf8ff] p-4 text-[12px] text-[#424754]">
+            <summary className="cursor-pointer font-semibold text-[#0058be]">See how totals are calculated</summary>
+            <div className="mt-3 space-y-1">
+              <div>Total findings: {findingSummary.totalFindings}</div>
+              <div>{findingSummary.verificationItems} verification items</div>
+              <div>{findingSummary.opportunities} suggested improvements</div>
+              <div>{findingSummary.confirmedIssues} confirmed issues</div>
+              {opportunityIssuesList.length > 0 && <div className="mt-2 border-t border-[#c2c6d6]/30 pt-2">{opportunityIssuesList.map((issue) => <div key={`calc-${issue.id}`}>{issue.count} {issue.title.toLowerCase()}</div>)}<strong>= {findingSummary.opportunities} suggested improvements</strong></div>}
+              <p className="pt-2 text-[#727785]">One product can appear in more than one finding.</p>
+            </div>
+          </details>
         </section>
 
         {/* Flagged Product Samples Section */}
