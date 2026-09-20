@@ -620,16 +620,16 @@ export const CatalogHealthView: React.FC<CatalogHealthViewProps> = ({
   return (
     <div className="flex flex-col w-full gap-6">
       {/* Top Scan Status & Re-run Bar */}
-      <section className="w-full flex flex-col md:flex-row items-center justify-between gap-4 p-2 pl-6 pr-2 bg-white rounded-full shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] border border-[#c2c6d6]/30">
-        <div className="flex items-center gap-4 w-full md:w-auto">
+      <section className="w-full flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 p-3 sm:p-2 sm:pl-6 sm:pr-2 bg-white rounded-full shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] border border-[#c2c6d6]/30">
+        <div className="flex min-w-0 items-center gap-3 sm:gap-4 w-full lg:w-auto">
           <div className="flex items-center justify-center w-10 h-10 rounded-full bg-[#eaedff] text-[#0058be]">
             <span className="material-symbols-outlined text-[20px]">storefront</span>
           </div>
-          <div className="flex flex-col">
+          <div className="flex min-w-0 flex-col">
             <span className="text-[11px] font-bold uppercase tracking-wider text-[#727785]">
               Target Storefront
             </span>
-            <span className="text-[16px] font-bold text-[#131b2e]">{auditData.storeDomain}</span>
+            <span className="break-all text-[14px] min-[390px]:text-[16px] font-bold text-[#131b2e]">{auditData.storeDomain}</span>
           </div>
           <div className="hidden lg:flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#6ffbbe] text-[#002113] text-[11px] font-bold">
             <span className="w-2 h-2 rounded-full bg-[#006c49]" />
@@ -637,10 +637,10 @@ export const CatalogHealthView: React.FC<CatalogHealthViewProps> = ({
           </div>
         </div>
 
-        <div className="flex items-center gap-2 w-full md:w-auto justify-end">
+        <div className="grid w-full grid-cols-2 gap-2 lg:flex lg:w-auto lg:justify-end">
           <button
             onClick={onOpenAuditScope}
-            className="text-[14px] font-semibold text-[#424754] hover:text-[#131b2e] px-4 py-2 transition-colors flex items-center gap-1 cursor-pointer"
+            className="min-h-11 justify-center text-[12px] min-[390px]:text-[14px] font-semibold text-[#424754] hover:text-[#131b2e] px-2 min-[390px]:px-4 py-2 transition-colors flex items-center gap-1 cursor-pointer"
             type="button"
           >
             <span className="material-symbols-outlined text-[18px]">tune</span>
@@ -648,7 +648,7 @@ export const CatalogHealthView: React.FC<CatalogHealthViewProps> = ({
           </button>
           <button
             onClick={() => onStartAudit(auditData.storeDomain)}
-            className="text-[14px] font-bold text-white bg-gradient-to-r from-[#0058be] to-[#2170e4] hover:opacity-95 px-6 py-2 rounded-full shadow-[0_8px_20px_rgba(59,130,246,0.3)] transition-all transform hover:-translate-y-0.5 flex items-center gap-1.5 cursor-pointer active:translate-y-0"
+            className="min-h-11 justify-center text-[12px] min-[390px]:text-[14px] font-bold text-white bg-gradient-to-r from-[#0058be] to-[#2170e4] hover:opacity-95 px-6 py-2 rounded-full shadow-[0_8px_20px_rgba(59,130,246,0.3)] transition-all transform hover:-translate-y-0.5 flex items-center gap-1.5 cursor-pointer active:translate-y-0"
             type="button"
           >
             <span>Re-run audit</span>

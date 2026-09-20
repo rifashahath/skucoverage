@@ -36,7 +36,7 @@ export const SeoMediaView: React.FC<SeoMediaViewProps> = ({
     <div className="flex flex-col gap-6 w-full max-w-5xl mx-auto pb-16">
       {/* Beginner Hero Explainer */}
       <div className="bg-white rounded-3xl p-6 sm:p-8 border border-[#c2c6d6]/40 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-        <div className="flex flex-col gap-2 max-w-2xl">
+        <div className="flex min-w-0 flex-col gap-2 max-w-2xl">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#eaedff] text-[#0058be] text-[12px] font-bold tracking-wide w-fit">
             <span className="material-symbols-outlined text-[16px]">photo_camera</span>
             <span>Beginner Guide: Image Alt Text &amp; SEO</span>
@@ -49,7 +49,7 @@ export const SeoMediaView: React.FC<SeoMediaViewProps> = ({
           </p>
         </div>
 
-        <div className="p-4 rounded-2xl bg-[#f2f3ff] border border-[#c2c6d6]/30 flex flex-col gap-2 shrink-0 text-[13px] min-w-[220px]">
+        <div className="p-4 rounded-2xl bg-[#f2f3ff] border border-[#c2c6d6]/30 flex w-full min-w-0 flex-col gap-2 text-[13px] md:w-[220px] md:shrink-0">
           <div className="font-bold text-[#131b2e] flex items-center gap-1.5">
             <span className="material-symbols-outlined text-[#006c49] text-[18px]">trending_up</span>
             Why this matters:

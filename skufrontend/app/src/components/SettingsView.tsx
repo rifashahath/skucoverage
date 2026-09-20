@@ -82,7 +82,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       <div className="bg-white rounded-[20px] p-6 lg:p-8 shadow-[0_20px_40px_rgba(0,0,0,0.08)] border border-[#e2e8f0] flex flex-col gap-8">
         {/* Section 1: Store & Account Information */}
         <section className="flex flex-col gap-5">
-          <div className="flex items-center justify-between pb-3 border-b border-[#eaedff]">
+          <div className="flex flex-col min-[430px]:flex-row min-[430px]:items-center justify-between gap-2 pb-3 border-b border-[#eaedff]">
             <div className="flex items-center gap-2.5">
               <span className="material-symbols-outlined text-[#0058be] text-[22px]">badge</span>
               <h2 className="text-[18px] font-bold text-[#131b2e]">Store &amp; Account Information</h2>
@@ -116,14 +116,14 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             {/* Field: Store Domain */}
             <div className="flex flex-col gap-1.5">
               <label className="text-[13px] font-bold text-[#131b2e]">Connected Shopify Store</label>
-              <div className="flex gap-2">
+              <div className="flex min-w-0 flex-col min-[430px]:flex-row gap-2">
                 <input
                   type="text"
                   value={storeInput}
                   onChange={(e) => setStoreInput(e.target.value)}
                   placeholder="your-store.myshopify.com"
                   required
-                  className="flex-1 px-4 py-2.5 bg-[#f2f3ff] rounded-xl text-[14px] font-mono text-[#131b2e] border border-transparent focus:border-[#0058be] focus:outline-hidden focus:ring-2 focus:ring-[#0058be]/20"
+                  className="min-w-0 flex-1 px-4 py-2.5 bg-[#f2f3ff] rounded-xl text-[14px] font-mono text-[#131b2e] border border-transparent focus:border-[#0058be] focus:outline-hidden focus:ring-2 focus:ring-[#0058be]/20"
                 />
                 <button
                   type="submit"
