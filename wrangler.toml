@@ -12,6 +12,9 @@ database_id = "25c19793-a518-4f1b-8c56-69ca9ef60417"
 CSV_URL_TTL_SECONDS = "604800"
 CORS_ORIGIN = "https://skucoverage.tech,https://www.skucoverage.tech,https://skucoverage-web.pages.dev,http://localhost:3000,http://localhost:5173,http://127.0.0.1:3000,http://127.0.0.1:5173"
 BREVO_SENDER_EMAIL = "noreply@skucoverage.tech"
+SUPABASE_URL = "https://rpogcdhsxmqlrzppqnmo.supabase.co"
+SUPABASE_ANON_KEY = "sb_publishable_Dy1CrhUzq4wnXQgYxVWR5w_DXyPFDfh"
+CSV_SIGNING_SECRET = "dev-secret-abc123"
 
 [triggers]
 crons = ["0 8 * * 1"]

@@ -449,12 +449,21 @@ async function readJson(c: { req: { json: () => Promise<unknown> } }): Promise<R
 export async function requireUser(c: { req: { header: (name: string) => string | undefined }; env: Env }): Promise<AuthenticatedUser | null> {
   const authorization = c.req.header('authorization');
   if (!authorization?.startsWith('Bearer ')) return null;
-  const response = await fetch(`${c.env.SUPABASE_URL.replace(/\/$/, '')}/auth/v1/user`, {
-    headers: { apikey: c.env.SUPABASE_ANON_KEY, authorization }
-  });
-  if (!response.ok) return null;
-  const payload = await response.json() as { id?: string; email?: string | null };
-  return typeof payload.id === 'string' ? { id: payload.id, email: payload.email ?? null } : null;
+  const rawUrl = c.env.SUPABASE_URL || 'https://rpogcdhsxmqlrzppqnmo.supabase.co';
+  const rawKey = c.env.SUPABASE_ANON_KEY || 'sb_publishable_Dy1CrhUzq4wnXQgYxVWR5w_DXyPFDfh';
+  const url = String(rawUrl).trim().replace(/\/+$/, '');
+  const key = String(rawKey).trim();
+  try {
+    const response = await fetch(`${url}/auth/v1/user`, {
+      headers: { apikey: key, authorization }
+    });
+    if (!response.ok) return null;
+    const payload = await response.json() as { id?: string; email?: string | null };
+    return typeof payload.id === 'string' ? { id: payload.id, email: payload.email ?? null } : null;
+  } catch (error) {
+    console.error('[skucoverage] requireUser auth error:', error);
+    return null;
+  }
 }
 
 export default {
