@@ -852,7 +852,7 @@ export const CatalogHealthView: React.FC<CatalogHealthViewProps> = ({
           </div>
           <div className="mt-2 flex items-center gap-1 text-[#ba1a1a] text-[12px]">
             <span className="material-symbols-outlined text-[16px]">warning</span>
-            <span>May affect channel eligibility; confirm in Merchant Center</span>
+            <span>Observed high-confidence problems only; verification items are separate</span>
           </div>
         </div>
       </section>
@@ -921,13 +921,13 @@ export const CatalogHealthView: React.FC<CatalogHealthViewProps> = ({
           <div className="rounded-xl border border-[#c2c6d6]/40 bg-[#faf8ff] p-4 text-[12px] text-[#424754]">
             <div className="font-bold text-[#131b2e]">How the score works</div>
             <p className="mt-1">
-              Each reviewed product is scored with documented quality heuristics, then product scores are averaged. Current weights: title 20%, description 10%, GTIN 30%, category 15%, images 20%, variants 5%.
+              Each product is scored only on fields this source can assess. Unavailable fields are excluded, never shown as 0% or 100%. Current weights: title 20%, description 10%, GTIN 30%, product type 15%, image count 20%, variants 5%.
             </p>
             <p className="mt-1">
               {titleQualityScore != null && incompleteTitleCount != null
                 ? `Example from this scan: title quality is ${titleQualityScore}% while ${incompleteTitleCount} products carry an incomplete-title warning. Incomplete titles receive partial credit, so these values measure different things.`
                 : 'Attribute scores measure field quality, while warning counts measure how many reviewed products matched a rule.'}{' '}
-              This is not a pass-rate or a Merchant Center verdict.
+              Each bar names the field actually observed. This is not a pass-rate, Google-category score, resolution check, or Merchant Center verdict.
             </p>
           </div>
 
@@ -944,14 +944,21 @@ export const CatalogHealthView: React.FC<CatalogHealthViewProps> = ({
                 <div key={attr.name} className="flex flex-col gap-1">
                   <div className="flex items-center justify-between">
                     <span className="text-[13px] font-semibold text-[#131b2e]">{attr.name}</span>
-                    <span className={`text-[13px] font-bold ${colorClasses.text}`}>{attr.score}%</span>
+                    <span className={`text-[13px] font-bold ${colorClasses.text}`}>
+                      {attr.score == null ? 'Not assessed' : `${attr.score}%`}
+                    </span>
                   </div>
                   <div className="w-full h-2.5 rounded-full bg-[#e2e7ff] overflow-hidden">
                     <div
                       className={`h-full rounded-full ${colorClasses.bar} transition-all duration-700`}
-                      style={{ width: `${attr.score}%` }}
+                      style={{ width: `${attr.score ?? 0}%` }}
                     />
                   </div>
+                  <span className="text-[10px] text-[#727785]">
+                    {attr.score == null
+                      ? `${attr.unavailableProducts ?? auditData.productsCount} products unavailable from this source`
+                      : `${attr.assessedProducts ?? auditData.productsCount} products assessed · public storefront`}
+                  </span>
                 </div>
               );
             })}
@@ -990,17 +997,20 @@ export const CatalogHealthView: React.FC<CatalogHealthViewProps> = ({
                 >
                   <div className="flex items-center gap-4">
                     <span className={`px-3 py-1 rounded-full text-[11px] font-bold uppercase shrink-0 ${badgeStyle}`}>
-                      {issue.severity}
+                      {issue.status === 'needs_verification' ? 'VERIFY' : issue.status === 'heuristic' ? 'HEURISTIC' : issue.severity}
                     </span>
                     <div className="flex flex-col">
                       <span className="text-[15px] text-[#131b2e] font-bold">{issue.title}</span>
                       <span className="text-[12px] text-[#424754]">{issue.description}</span>
+                      <span className="mt-1 text-[10px] font-semibold uppercase tracking-wide text-[#727785]">
+                        {issue.source === 'public_storefront' ? 'Public storefront' : issue.source} · {issue.confidence ?? 'medium'} confidence
+                      </span>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-6 self-end md:self-auto">
                     <span className={`text-[14px] font-bold ${countColor}`}>
-                      {issue.count} instances
+                      {issue.count} {issue.status === 'needs_verification' ? 'products to verify' : 'instances'}
                     </span>
                     <button
                       onClick={() => onInspectIssue(issue)}
@@ -1070,7 +1080,7 @@ export const CatalogHealthView: React.FC<CatalogHealthViewProps> = ({
           <div className="flex flex-col">
             <h2 className="text-[18px] font-bold text-[#131b2e]">Recommended Action Plan</h2>
             <p className="text-[12px] text-[#424754]">
-              Step-by-step roadmap to unlock maximum search visibility and GMC clearance.
+              Step-by-step roadmap to prioritize observed fixes and verification work.
             </p>
           </div>
 

@@ -42,13 +42,13 @@ check("audit: score in 0-100", a.score >= 0 && a.score <= 100, a.score)
 check(
 	"audit: breakdown keys",
 	["titles", "descriptions", "gtins", "categories", "images", "variants"].every(
-		(k) => typeof a.scoreBreakdown[k] === "number",
+		(k) => typeof a.scoreBreakdown[k] === "number" || a.scoreBreakdown[k] === null,
 	),
 )
 check(
-	"audit: missing_gtin on prod_1 + prod_3",
+	"audit: unknown public GTIN status on prod_1 + prod_3",
 	JSON.stringify(
-		a.issues.find((i: any) => i.type === "missing_gtin").affectedProducts,
+		a.issues.find((i: any) => i.type === "gtin_status_unverified").affectedProducts,
 	) === JSON.stringify(["prod_1", "prod_3"]),
 )
 check(
@@ -75,8 +75,13 @@ check("audit: six explicit scoring dimensions", a.scoring.dimensions.length === 
 check("audit: issue classification present", a.issues.every((i: any) => ["eligibility_blocker", "data_warning", "growth_opportunity"].includes(i.classification)))
 check("audit: issue groups partition all issues", a.issueGroups.eligibilityBlockers.length + a.issueGroups.dataWarnings.length + a.issueGroups.growthOpportunities.length === a.issues.length)
 check("audit: coverage is explicit and non-authoritative", a.coverage.assessedProducts === 3 && a.coverage.authoritative === false, a.coverage)
-check("audit: GTIN warning does not claim GS1 ownership", a.issues.find((i: any) => i.type === "missing_gtin")?.classification === "data_warning")
+check("audit: unavailable GTIN requirement is review-only", a.issues.find((i: any) => i.type === "gtin_status_unverified")?.status === "needs_verification")
 check("audit: nextSteps present", a.nextSteps.length === 3)
+check("audit: unknown GTINs excluded from GTIN score", a.scoreBreakdown.gtins === 100, a.scoreBreakdown.gtins)
+check("audit: GTIN assessment coverage is explicit", a.assessmentBreakdown.gtins.assessedProducts === 1 && a.assessmentBreakdown.gtins.unavailableProducts === 2, a.assessmentBreakdown.gtins)
+check("audit: findings include product evidence", a.issues.every((i: any) => i.evidence.length === Math.min(i.count, 200) && i.evidence.every((e: any) => e.productId && e.observed && e.expected)), a.issues)
+check("audit: finding semantics are explicit", a.issues.every((i: any) => i.status && i.confidence && i.source === "public_storefront"), a.issues)
+
 
 /* ---- 2. determinism ---- */
 check(
@@ -113,7 +118,7 @@ check("edge: missing_title e1", hasIssue("missing_title", "e1"))
 check("edge: invalid_gtin e1", hasIssue("invalid_gtin", "e1"))
 check("edge: title_too_long e2", hasIssue("title_too_long", "e2"))
 check("edge: duplicate_category_levels e2", hasIssue("duplicate_category_levels", "e2"))
-check("edge: handmade GTIN exempt e3", !hasIssue("missing_gtin", "e3"))
+check("edge: handmade GTIN exempt e3", !hasIssue("gtin_status_unverified", "e3"))
 check("edge: duplicate_variant_titles e4", hasIssue("duplicate_variant_titles", "e4"))
 
 /* ---- 5. category_recommend ---- */

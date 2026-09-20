@@ -245,38 +245,28 @@ function mapEngineReportToStoreAudit(report, storeDomain, activeAuditId) {
   const issues = Array.isArray(audit.issues) ? audit.issues : [];
 
   const breakdown = audit.scoreBreakdown || {};
-  const attributeBreakdown = [
-    {
-      name: 'Titles',
-      score: Math.round(breakdown.titles ?? 0),
-      color: (breakdown.titles ?? 0) >= 80 ? 'secondary' : (breakdown.titles ?? 0) >= 50 ? 'tertiary' : 'error',
-    },
-    {
-      name: 'Descriptions',
-      score: Math.round(breakdown.descriptions ?? 0),
-      color: (breakdown.descriptions ?? 0) >= 80 ? 'secondary' : (breakdown.descriptions ?? 0) >= 50 ? 'tertiary' : 'error',
-    },
-    {
-      name: 'GTINs / Barcodes',
-      score: Math.round(breakdown.gtins ?? 0),
-      color: (breakdown.gtins ?? 0) >= 80 ? 'secondary' : (breakdown.gtins ?? 0) >= 50 ? 'tertiary' : 'error',
-    },
-    {
-      name: 'Google Categories',
-      score: Math.round(breakdown.categories ?? 0),
-      color: (breakdown.categories ?? 0) >= 80 ? 'secondary' : (breakdown.categories ?? 0) >= 50 ? 'tertiary' : 'error',
-    },
-    {
-      name: 'Images & Resolution',
-      score: Math.round(breakdown.images ?? 0),
-      color: (breakdown.images ?? 0) >= 80 ? 'secondary' : (breakdown.images ?? 0) >= 50 ? 'tertiary' : 'error',
-    },
-    {
-      name: 'Variant Attributes',
-      score: Math.round(breakdown.variants ?? 0),
-      color: (breakdown.variants ?? 0) >= 80 ? 'secondary' : (breakdown.variants ?? 0) >= 50 ? 'tertiary' : 'error',
-    },
+  const assessment = audit.assessmentBreakdown || {};
+  const attributeDefinitions = [
+    ['Titles', 'titles'],
+    ['Descriptions', 'descriptions'],
+    ['GTIN / barcode format', 'gtins'],
+    ['Storefront product type', 'categories'],
+    ['Image count', 'images'],
+    ['Variant structure', 'variants'],
   ];
+  const attributeBreakdown = attributeDefinitions.map(([name, key]) => {
+    const rawScore = typeof breakdown[key] === 'number' ? Math.round(breakdown[key]) : null;
+    const meta = assessment[key] || {};
+    return {
+      name,
+      score: rawScore,
+      status: meta.status || (rawScore === null ? 'not_assessed' : 'assessed'),
+      assessedProducts: meta.assessedProducts,
+      unavailableProducts: meta.unavailableProducts,
+      source: meta.source || 'public_storefront',
+      color: rawScore === null ? 'primary' : rawScore >= 80 ? 'secondary' : rawScore >= 50 ? 'tertiary' : 'error',
+    };
+  });
 
   const categoryMap = (type) => {
     const t = (type || '').toLowerCase();
@@ -298,6 +288,9 @@ function mapEngineReportToStoreAudit(report, storeDomain, activeAuditId) {
       id: `issue-${iss.type || idx}`,
       severity: (iss.priority || 'medium').toUpperCase(),
       classification: iss.classification || 'data_warning',
+      status: iss.status || 'observed',
+      confidence: iss.confidence || 'medium',
+      source: iss.source || 'public_storefront',
       title: readableTitle(iss.type),
       description: iss.impact || 'Requires remediation for Google Merchant Center feed eligibility.',
       count: iss.count || affected.length || 1,
@@ -305,13 +298,20 @@ function mapEngineReportToStoreAudit(report, storeDomain, activeAuditId) {
       // Only real affected product ids are listed. Previously a synthetic
       // `PROD-n` row was invented whenever the engine returned none, so the
       // UI showed products that do not exist.
-      affectedItems: affected.slice(0, 50).map((prodId) => ({
-        sku: typeof prodId === 'string' && prodId ? (prodId.startsWith('gid://') ? prodId.split('/').pop() : prodId) : String(prodId),
-        productTitle: '',
-        issueDetail: `${readableTitle(iss.type)} flagged on this item`,
-        suggestedFix: iss.impact ? `Resolve to improve ${iss.impact}` : 'Review and update product metadata in Shopify',
-        resolved: false,
-      })),
+      affectedItems: affected.slice(0, 50).map((prodId, evidenceIndex) => {
+        const evidence = Array.isArray(iss.evidence) ? iss.evidence[evidenceIndex] : null;
+        return {
+          sku: typeof prodId === 'string' && prodId ? (prodId.startsWith('gid://') ? prodId.split('/').pop() : prodId) : String(prodId),
+          productTitle: evidence?.observed || '',
+          issueDetail: evidence?.observed || `${readableTitle(iss.type)} flagged on this item`,
+          suggestedFix: evidence?.expected || iss.impact || 'Review the source field',
+          observed: evidence?.observed,
+          expected: evidence?.expected,
+          confidence: iss.confidence,
+          source: iss.source,
+          resolved: false,
+        };
+      }),
     };
   });
 
@@ -331,7 +331,7 @@ function mapEngineReportToStoreAudit(report, storeDomain, activeAuditId) {
   }));
 
   const detectedIssuesCount = mappedIssues.reduce((acc, curr) => acc + (curr.count || 0), 0);
-  const highPriorityCount = mappedIssues.filter((i) => i.severity === 'HIGH').reduce((acc, curr) => acc + (curr.count || 0), 0);
+  const highPriorityCount = mappedIssues.filter((i) => i.severity === 'HIGH' && i.status === 'observed' && i.confidence === 'high').reduce((acc, curr) => acc + (curr.count || 0), 0);
 
   return {
     storeDomain: storeDomain || report.payload.storeId || '',
@@ -761,7 +761,7 @@ export function App() {
       ...auditData.issues.map((i) => [i.severity, i.title, i.count, i.description]),
       [],
       ['Attribute', 'Score Percentage'],
-      ...auditData.attributeBreakdown.map((a) => [a.name, `${a.score}%`]),
+      ...auditData.attributeBreakdown.map((a) => [a.name, a.score == null ? 'Not assessed' : `${a.score}%`]),
     ];
 
     downloadCsv(`catalog-health-report-${auditData.storeDomain}.csv`, csvRows);

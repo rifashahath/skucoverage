@@ -14,6 +14,9 @@ export type ResultMessageType =
 
 export type Priority = "high" | "medium" | "low"
 export type IssueClass = "eligibility_blocker" | "data_warning" | "growth_opportunity"
+export type Confidence = "high" | "medium" | "low"
+export type FindingStatus = "observed" | "heuristic" | "needs_verification"
+export type EvidenceSource = "public_storefront" | "merchant_center" | "shopify_admin"
 
 export interface Product {
 	id: string
@@ -60,4 +63,8 @@ export interface Issue {
 	priority: Priority
 	impact: string
 	percentOfCatalog: number
+	status: FindingStatus
+	confidence: Confidence
+	source: EvidenceSource
+	evidence: Array<{ productId: string; observed: string; expected: string }>
 }
