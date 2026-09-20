@@ -15,9 +15,9 @@ const engineReport = {
       issues: [
         {
           type: 'gtin_status_unverified', classification: 'data_warning', priority: 'low',
-          title: 'GTIN status unverified', rule: 'No barcode is exposed on the public storefront variant.',
+          title: 'GTIN not verified from public storefront data', rule: 'No barcode is exposed on the public storefront variant.',
           count: 242, affectedProducts: ['gid://shopify/Product/1'], status: 'needs_verification', confidence: 'high',
-          source: 'public_storefront', evidence: [{ productId: 'gid://shopify/Product/1', observed: 'No barcode', expected: 'Verify in Shopify Admin' }],
+          source: 'public_storefront', evidence: [{ productId: 'gid://shopify/Product/1', productName: 'Blue Shirt', productUrl: '/products/blue-shirt', variant: 'Blue / M', gtinFound: false, dataSourceChecked: 'Public Shopify storefront products.json', verificationStatus: 'Needs verification in Shopify Admin or Merchant Center', observed: 'No barcode', expected: 'Verify in Shopify Admin' }],
         },
         {
           type: 'incomplete_title', classification: 'growth_opportunity', priority: 'medium',
@@ -58,7 +58,7 @@ test('verification items are never counted as high-priority warnings', () => {
 test('engine display labels and rules pass through instead of regenerated titles', () => {
   const data = mapEngineReportToStoreAudit(engineReport, 'example.myshopify.com', 'a1');
   const gtin = data.issues.find((i) => i.id === 'issue-gtin_status_unverified');
-  assert.equal(gtin.title, 'GTIN status unverified');
+  assert.equal(gtin.title, 'GTIN not verified from public storefront data');
   assert.match(gtin.rule, /No barcode is exposed/);
 });
 
@@ -91,4 +91,16 @@ test('summarizeFindings handles empty and missing statuses', () => {
 test('mapping returns null for empty payloads instead of a fabricated report', () => {
   assert.equal(mapEngineReportToStoreAudit(null, 'x', 'a'), null);
   assert.equal(mapEngineReportToStoreAudit({ payload: {} }, 'x', 'a'), null);
+});
+
+
+test('product evidence maps names, URLs, variants, source and verification status', () => {
+  const data = mapEngineReportToStoreAudit(engineReport, 'example.myshopify.com', 'a1');
+  const item = data.issues.find((i) => i.id === 'issue-gtin_status_unverified').affectedItems[0];
+  assert.equal(item.productTitle, 'Blue Shirt');
+  assert.equal(item.productUrl, 'https://example.myshopify.com/products/blue-shirt');
+  assert.equal(item.variant, 'Blue / M');
+  assert.equal(item.gtinFound, false);
+  assert.match(item.dataSourceChecked, /products\.json/);
+  assert.match(item.verificationStatus, /Needs verification/);
 });

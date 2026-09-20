@@ -200,7 +200,7 @@ export function checkCategory(product: Product): CategoryCheck {
 	// meaningless labels such as "misc" or "other".
 	if (GENERIC_CATEGORIES.has(levels[levels.length - 1]))
 		return { score: 25, state: "generic", depth }
-	if (depth < 2) return { score: 65, state: "shallow", depth }
+	if (depth < 2) return { score: 100, state: "shallow", depth }
 	return { score: 100, state: "present", depth }
 }
 
@@ -251,6 +251,9 @@ export type ProductScore = {
 	hasSku: boolean
 	productScore: number
 	productTitle: string
+	productUrl: string | null
+	variant: string
+	gtinFound: boolean
 	complete: boolean
 }
 
@@ -309,6 +312,9 @@ export function scoreProduct(product: Product): ProductScore {
 		hasSku: text(product.sku) !== "",
 		productScore: productScore ?? 0,
 		productTitle: text(product.title),
+		productUrl: text(product.handle) ? `/products/${encodeURIComponent(text(product.handle))}` : null,
+		variant: text(product.variantTitles?.[0]) || "First public storefront variant",
+		gtinFound: gtin.state === "present" || gtin.state === "invalid",
 		complete:
 			title.score === 100 &&
 			description.score === 100 &&
@@ -348,7 +354,7 @@ export function buildScoringDescription() {
 		kind: "weighted_quality_score",
 		dimensions: ["titles", "descriptions", "gtins", "categories", "images", "variants"],
 		weights: WEIGHTS,
-		note: "This is a weighted quality score, not a pass rate. Scores include only fields the source can assess; unavailable fields are excluded, not treated as zero or 100.",
+		note: "This is a storefront quality score, not a Merchant Center approval score. It is a weighted field-quality score, not a pass rate or a count of issue instances. Scores include only fields the source can assess; unavailable fields are excluded, not treated as zero or 100.",
 		formula: {
 			perProduct: "Per product: sum(field score x field weight) / sum(weights of the fields assessed for that product).",
 			overall: "The overall score is the average of the per-product scores across reviewed products.",
@@ -377,7 +383,6 @@ function issueEvidence(type: string, score: ProductScore): { observed: string; e
 		missing_brand: "Vendor/brand is empty in the public storefront snapshot",
 		missing_sku: "First public storefront variant has no SKU",
 		missing_category: "Storefront product_type is empty",
-		shallow_product_type: `Storefront product_type is a single level (depth ${score.category.depth})`,
 		generic_category: `Storefront product_type matched a generic label (depth ${score.category.depth})`,
 		duplicate_category_levels: `Storefront product_type repeats a level (depth ${score.category.depth})`,
 		too_few_images: `${score.images.count} product image${score.images.count === 1 ? "" : "s"} in the public storefront snapshot`,
@@ -399,7 +404,6 @@ function issueEvidence(type: string, score: ProductScore): { observed: string; e
 		missing_brand: "A vendor/brand value in the storefront data",
 		missing_sku: "A SKU on the public variant",
 		missing_category: "A storefront product_type value",
-		shallow_product_type: "A product_type with 2 or more levels, e.g. 'Clothing > Shirts'",
 		generic_category: "A specific product_type instead of a generic label such as 'misc' or 'other'",
 		duplicate_category_levels: "A product_type without repeated levels",
 		too_few_images: "3 or more images score full credit; this product has fewer than 3",
@@ -444,8 +448,8 @@ const ISSUE_SPECS: IssueSpec[] = [
 		classification: "data_warning",
 		priority: "low",
 		impact: "No barcode was exposed by the public storefront; whether one is required cannot be determined here",
-		title: "GTIN status unverified",
-		rule: "No barcode is exposed on the public storefront variant. Whether a GTIN exists or is required cannot be determined from this source; confirm in Shopify Admin or Merchant Center.",
+		title: "GTIN not verified from public storefront data",
+		rule: "No GTIN was found on the first public storefront variant. A GTIN may exist in Shopify or Merchant Center but not be visible on the storefront.",
 		match: (s) => s.gtin.state === "missing_unverified",
 		status: "needs_verification",
 		confidence: "high",
@@ -598,19 +602,6 @@ const ISSUE_SPECS: IssueSpec[] = [
 			`Assign Shopify Standard Product Taxonomy categories to ${c} product${c === 1 ? "" : "s"}`,
 	},
 	{
-		type: "shallow_product_type",
-		classification: "growth_opportunity",
-		priority: "low",
-		impact: IMPACT.category,
-		title: "Product type is a single level",
-		rule: "Storefront product_type has one level only (e.g. 'Shirts'); paths with 2 or more levels score full credit. Heuristic signal.",
-		match: (s) => s.category.state === "shallow",
-		status: "heuristic",
-		confidence: "medium",
-		recommendation: (c) =>
-			`Deepen the storefront product_type on ${c} product${c === 1 ? "" : "s"} to a multi-level taxonomy path`,
-	},
-	{
 		type: "generic_category",
 		classification: "growth_opportunity",
 		priority: "low",
@@ -700,7 +691,16 @@ export function auditFullCatalog(products: Product[]) {
 			source: spec.source ?? "public_storefront",
 			evidence: affectedScores.slice(0, MAX_AFFECTED).map((score) => {
 				const evidence = spec.evidence?.(score) ?? issueEvidence(spec.type, score)
-				return { productId: score.id, ...evidence }
+				return {
+						productId: score.id,
+						productName: score.productTitle || `Product ${score.id}`,
+						productUrl: score.productUrl,
+						variant: score.variant,
+						gtinFound: score.gtinFound,
+						dataSourceChecked: "Public Shopify storefront products.json",
+						verificationStatus: spec.status === "needs_verification" ? "Needs verification in Shopify Admin or Merchant Center" : "Rule evaluated from public storefront data",
+						...evidence,
+					}
 			}),
 		})
 		recommendations.push({
