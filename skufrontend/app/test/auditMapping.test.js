@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { mapEngineReportToStoreAudit, summarizeFindings } from '../src/lib/auditMapping.js';
 
 const engineReport = {
@@ -103,4 +104,18 @@ test('product evidence maps names, URLs, variants, source and verification statu
   assert.equal(item.gtinFound, false);
   assert.match(item.dataSourceChecked, /products\.json/);
   assert.match(item.verificationStatus, /Needs verification/);
+});
+
+test('merchant report keeps advanced detail behind clear progressive disclosure', () => {
+  const source = readFileSync(new URL('../src/components/CatalogHealthView.tsx', import.meta.url), 'utf8');
+
+  assert.match(source, /Your audit summary/);
+  assert.match(source, /No confirmed storefront errors found/);
+  assert.match(source, /Suggested improvements/);
+  assert.match(source, /How this score is calculated/);
+  assert.match(source, /Unverified fields don&apos;t lower your score/);
+  assert.match(source, /Filter findings/);
+  assert.match(source, /Review GTINs/);
+  assert.match(source, /Review suggestions/);
+  assert.doesNotMatch(source.slice(source.indexOf('Merchant-facing findings'), source.indexOf('Flagged Product Samples')), />Inspect</);
 });
