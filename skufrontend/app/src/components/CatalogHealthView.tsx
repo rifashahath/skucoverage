@@ -174,7 +174,7 @@ export const CatalogHealthView: React.FC<CatalogHealthViewProps> = ({
             <div className="group relative bg-[#f2f3ff] rounded-[14px] p-6 shadow-xs hover:shadow-md transition-all">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-[11px] font-bold uppercase tracking-wider text-[#727785]">
-                  High priority
+                  High-confidence warnings
                 </span>
                 <div className="w-8 h-8 rounded-full bg-[#eaedff] flex items-center justify-center text-[#727785] group-hover:text-[#ba1a1a] transition-colors">
                   <span className="material-symbols-outlined text-[18px]">warning</span>
@@ -182,11 +182,11 @@ export const CatalogHealthView: React.FC<CatalogHealthViewProps> = ({
               </div>
               <div className="flex items-baseline gap-1">
                 <span className="text-[40px] text-[#131b2e] font-extrabold leading-none">0</span>
-                <span className="text-[11px] text-[#727785] font-semibold">critical</span>
+                <span className="text-[11px] text-[#727785] font-semibold">warnings</span>
               </div>
               <div className="mt-4 flex items-center gap-1 text-[#727785] text-[12px]">
                 <span className="material-symbols-outlined text-[15px]">shield</span>
-                <span>Zero catalog blockers</span>
+                <span>No storefront warnings found</span>
               </div>
             </div>
           </div>
@@ -395,7 +395,7 @@ export const CatalogHealthView: React.FC<CatalogHealthViewProps> = ({
           <div className="flex flex-col justify-between p-5 rounded-[14px] bg-[#f2f3ff] border border-[#c2c6d6]/30 relative overflow-hidden">
             <div className="flex items-center justify-between">
               <span className="text-[11px] uppercase tracking-wider text-[#727785] font-bold">
-                Health Score
+                Catalog quality score
               </span>
               <span className="material-symbols-outlined text-[#727785] text-[18px]">verified_user</span>
             </div>
@@ -437,7 +437,7 @@ export const CatalogHealthView: React.FC<CatalogHealthViewProps> = ({
           <div className="flex flex-col justify-between p-5 rounded-[14px] bg-[#f2f3ff] border border-[#c2c6d6]/30 relative overflow-hidden">
             <div className="flex items-center justify-between">
               <span className="text-[11px] uppercase tracking-wider text-[#727785] font-bold">
-                High Priority
+                High-confidence warnings
               </span>
               <span className="material-symbols-outlined text-[#727785] text-[18px]">error</span>
             </div>
@@ -617,6 +617,9 @@ export const CatalogHealthView: React.FC<CatalogHealthViewProps> = ({
   /* =========================================================================================
      STAGE 3: AUDIT RESULTS STATE (Matches Image 5 HTML)
      ========================================================================================= */
+  const titleQualityScore = auditData.attributeBreakdown.find((attr) => attr.name === 'Titles')?.score;
+  const incompleteTitleCount = auditData.issues.find((issue) => issue.id.includes('incomplete_title'))?.count;
+
   return (
     <div className="flex flex-col w-full gap-6">
       {/* Top Scan Status & Re-run Bar */}
@@ -746,7 +749,7 @@ export const CatalogHealthView: React.FC<CatalogHealthViewProps> = ({
 
       {/* 4 Metric Tiles in a Row */}
       <section className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-        {/* Tile 1: Health Score */}
+        {/* Tile 1: Catalog quality score */}
         <div className="bg-[#f2f3ff] p-6 rounded-[14px] flex flex-col justify-between shadow-xs">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold uppercase tracking-wider text-[#727785]">
@@ -770,13 +773,20 @@ export const CatalogHealthView: React.FC<CatalogHealthViewProps> = ({
             </span>
             <span className="font-medium">{auditData.scoreStatus}</span>
           </div>
+          <button
+            type="button"
+            onClick={onOpenAuditScope}
+            className="mt-2 text-left text-[11px] font-semibold text-[#0058be] hover:underline cursor-pointer"
+          >
+            How this score is calculated
+          </button>
         </div>
 
         {/* Tile 2: Products Audited */}
         <div className="bg-[#f2f3ff] p-6 rounded-[14px] flex flex-col justify-between shadow-xs">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold uppercase tracking-wider text-[#727785]">
-              Products Audited
+              Products Reviewed
             </span>
             <span className="w-8 h-8 rounded-full bg-[#eaedff] flex items-center justify-center text-[#0058be]">
               <span className="material-symbols-outlined text-[18px]">inventory_2</span>
@@ -786,7 +796,7 @@ export const CatalogHealthView: React.FC<CatalogHealthViewProps> = ({
             <span className="text-[40px] font-extrabold text-[#131b2e] leading-none">
               {auditData.productsCount}
             </span>
-            <span className="text-[14px] font-semibold text-[#727785]">active items</span>
+            <span className="text-[14px] font-semibold text-[#727785]">products</span>
           </div>
           <div className="mt-2 flex items-center gap-1 text-[#727785] text-[12px]">
             {auditData.limitReached ? (
@@ -807,7 +817,7 @@ export const CatalogHealthView: React.FC<CatalogHealthViewProps> = ({
         <div className="bg-[#f2f3ff] p-6 rounded-[14px] flex flex-col justify-between shadow-xs">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold uppercase tracking-wider text-[#727785]">
-              Detected Issues
+              Issue Instances
             </span>
             <span className="w-8 h-8 rounded-full bg-[#ffdad6] flex items-center justify-center text-[#ba1a1a]">
               <span className="material-symbols-outlined text-[18px]">bug_report</span>
@@ -817,7 +827,7 @@ export const CatalogHealthView: React.FC<CatalogHealthViewProps> = ({
             <span className="text-[40px] font-extrabold text-[#ba1a1a] leading-none">
               {auditData.detectedIssuesCount}
             </span>
-            <span className="text-[14px] font-semibold text-[#ba1a1a]">issues</span>
+            <span className="text-[14px] font-semibold text-[#ba1a1a]">instances</span>
           </div>
           <div className="mt-2 flex items-center gap-1 text-[#727785] text-[12px]">
             <span>Across {auditData.issues.length} issue {auditData.issues.length === 1 ? 'category' : 'categories'}</span>
@@ -838,11 +848,11 @@ export const CatalogHealthView: React.FC<CatalogHealthViewProps> = ({
             <span className="text-[40px] font-extrabold text-[#ba1a1a] leading-none">
               {auditData.highPriorityCount}
             </span>
-            <span className="text-[14px] font-semibold text-[#ba1a1a]">critical</span>
+            <span className="text-[14px] font-semibold text-[#ba1a1a]">warnings</span>
           </div>
           <div className="mt-2 flex items-center gap-1 text-[#ba1a1a] text-[12px]">
             <span className="material-symbols-outlined text-[16px]">warning</span>
-            <span>Blocks Google Merchant feed</span>
+            <span>May affect channel eligibility; confirm in Merchant Center</span>
           </div>
         </div>
       </section>
@@ -885,7 +895,7 @@ export const CatalogHealthView: React.FC<CatalogHealthViewProps> = ({
               type="button"
             >
               <span className="material-symbols-outlined text-[18px]">auto_fix_high</span>
-              <span>Batch Fix Selected</span>
+              <span>Preview fixes</span>
             </button>
           </div>
         </div>
@@ -896,16 +906,29 @@ export const CatalogHealthView: React.FC<CatalogHealthViewProps> = ({
             <div className="flex flex-col">
               <h2 className="text-[18px] font-bold text-[#131b2e]">Catalog Attribute Breakdown</h2>
               <p className="text-[12px] text-[#424754]">
-                Core taxonomy completeness scores according to e-commerce search algorithms.
+                Average quality scores from the storefront fields reviewed. A score is not the same as the share of products without warnings.
               </p>
             </div>
             <span
               onClick={onOpenAuditScope}
               className="text-[12px] text-[#0058be] font-semibold flex items-center gap-1 cursor-pointer hover:underline"
             >
-              <span>Standards reference</span>
+              <span>Scoring method</span>
               <span className="material-symbols-outlined text-[16px]">info</span>
             </span>
+          </div>
+
+          <div className="rounded-xl border border-[#c2c6d6]/40 bg-[#faf8ff] p-4 text-[12px] text-[#424754]">
+            <div className="font-bold text-[#131b2e]">How the score works</div>
+            <p className="mt-1">
+              Each reviewed product is scored with documented quality heuristics, then product scores are averaged. Current weights: title 20%, description 10%, GTIN 30%, category 15%, images 20%, variants 5%.
+            </p>
+            <p className="mt-1">
+              {titleQualityScore != null && incompleteTitleCount != null
+                ? `Example from this scan: title quality is ${titleQualityScore}% while ${incompleteTitleCount} products carry an incomplete-title warning. Incomplete titles receive partial credit, so these values measure different things.`
+                : 'Attribute scores measure field quality, while warning counts measure how many reviewed products matched a rule.'}{' '}
+              This is not a pass-rate or a Merchant Center verdict.
+            </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-[#f2f3ff] rounded-2xl">
@@ -939,10 +962,10 @@ export const CatalogHealthView: React.FC<CatalogHealthViewProps> = ({
         <section className="flex flex-col gap-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
             <h2 className="text-[18px] font-bold text-[#131b2e]">
-              Detected Catalog Issues ({auditData.detectedIssuesCount})
+              Detected Issue Instances ({auditData.detectedIssuesCount})
             </h2>
             <span className="text-[12px] text-[#424754]">
-              Prioritized by revenue disruption &amp; compliance severity
+              Prioritized by storefront-data confidence and review urgency
             </span>
           </div>
 
@@ -977,7 +1000,7 @@ export const CatalogHealthView: React.FC<CatalogHealthViewProps> = ({
 
                   <div className="flex items-center gap-6 self-end md:self-auto">
                     <span className={`text-[14px] font-bold ${countColor}`}>
-                      {issue.count} items
+                      {issue.count} instances
                     </span>
                     <button
                       onClick={() => onInspectIssue(issue)}

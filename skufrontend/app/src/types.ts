@@ -80,4 +80,9 @@ export interface StoreAuditData {
   scanLimit?: number;
   scanned?: number;
   coverage?: { source: string; authoritative: boolean; included: string[]; excluded: string[] };
+  scoring?: {
+    dimensions: string[];
+    weights: Record<string, number>;
+    note: string;
+  } | null;
 }
