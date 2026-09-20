@@ -84,27 +84,34 @@ test('GTIN check validates only supported length and modulo-10 format', () => {
   assert.equal(validateGtinFormat('abc'), false);
 });
 
-test('channel readiness view explains units, statuses and uses real actions', () => {
+test('channel readiness view uses progressive disclosure and one recommended next action', () => {
   const source = readFileSync(new URL('../src/components/ChannelReadinessView.tsx', import.meta.url), 'utf8');
-  // The count is explained as findings across unique scanned products.
-  assert.match(source, /findings across /);
-  assert.match(source, /scanned products/);
-  // Four clear statuses including needs verification.
-  assert.match(source, /Ready/);
+  // Plain-English outcome comes before detail and preserves the four trusted statuses.
+  assert.match(source, /No potential blockers found/);
+  assert.match(source, /All scanned products look ready/);
   assert.match(source, /Needs attention/);
   assert.match(source, /Needs verification/);
   assert.match(source, /Potential blockers/);
-  // Status filter offers every readiness bucket.
-  assert.match(source, /<option value="verification">Needs verification<\/option>/);
-  // Findings carry rule, source and confidence.
-  assert.match(source, /Rule: /);
-  assert.match(source, /Source: /);
-  assert.match(source, /confidenceLabel/);
-  // The per-group action opens the evidence drawer; no decorative Fix button.
-  assert.match(source, /Review evidence/);
-  assert.match(source, /onInspectIssue/);
-  assert.doesNotMatch(source, />Fix</);
-  // Existing responsive safeguards are kept.
+  // The recommended action opens the highest-priority evidence, not a decorative workflow.
+  assert.match(source, /recommendedSignal/);
+  assert.match(source, /handleRecommendedAction/);
+  assert.match(source, /onInspectIssue\(recommendedSignal\)/);
+  // Channel controls are named in merchant language.
+  assert.match(source, /Both channels/);
+  assert.match(source, /Google Shopping/);
+  assert.match(source, /Meta catalogs/);
+  // Technical units, evidence and utilities are progressively disclosed.
+  assert.match(source, /What do these numbers mean\?/);
+  assert.match(source, /findings across /);
+  assert.match(source, /What needs your attention/);
+  assert.match(source, /Open a result to see products, current values, evidence and recommended fixes/);
+  assert.match(source, /How this channel check works/);
+  // Detailed rule/source/guidance and product chips no longer crowd finding rows.
+  assert.doesNotMatch(source, /<span className="font-bold">Rule:/);
+  assert.doesNotMatch(source, /Source: \{signal\.sourceLabel\}/);
+  assert.doesNotMatch(source, /Guidance: /);
+  assert.doesNotMatch(source, /affectedProducts\.slice/);
+  // Existing responsive safeguards and touch targets remain.
   assert.match(source, /overflow-x-clip/);
   assert.match(source, /min-h-11/);
 });
