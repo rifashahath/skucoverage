@@ -120,7 +120,7 @@ export const BeginnerGuideView: React.FC = () => {
     <div className="flex flex-col gap-6 w-full max-w-5xl mx-auto pb-16">
       {/* Header */}
       <div className="bg-white rounded-3xl p-6 sm:p-8 border border-[#c2c6d6]/40 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-        <div className="flex flex-col gap-2 max-w-2xl">
+        <div className="flex min-w-0 flex-col gap-2 max-w-2xl">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#eaedff] text-[#0058be] text-[12px] font-bold tracking-wide w-fit">
             <span className="material-symbols-outlined text-[16px]">school</span>
             <span>New Merchant Center</span>
@@ -133,7 +133,7 @@ export const BeginnerGuideView: React.FC = () => {
           </p>
         </div>
 
-        <div className="p-4 rounded-2xl bg-[#f2f3ff] border border-[#c2c6d6]/30 flex flex-col gap-1.5 shrink-0 text-[13px] min-w-[200px]">
+        <div className="p-4 rounded-2xl bg-[#f2f3ff] border border-[#c2c6d6]/30 flex w-full min-w-0 flex-col gap-1.5 text-[13px] md:w-[200px] md:shrink-0">
           <span className="font-bold text-[#131b2e]">Need extra help?</span>
           <span className="text-[#424754] text-[12px]">All diagnostics on your store are 100% read-only and safe.</span>
         </div>

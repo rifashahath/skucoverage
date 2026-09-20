@@ -891,12 +891,12 @@ export function App() {
         />
 
         {/* Center Main Scrollable Canvas */}
-        <main className="w-full max-w-6xl xl:max-w-7xl p-4 sm:p-6 lg:p-10 mx-auto">
+        <main className="min-w-0 w-full max-w-6xl xl:max-w-7xl p-3 min-[390px]:p-4 sm:p-6 lg:p-10 mx-auto">
           {/* Mobile drawer open trigger */}
           <div className="md:hidden flex items-center justify-between mb-4">
             <button
               onClick={() => setIsMobileSidebarOpen(true)}
-              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white border border-[#c2c6d6]/40 text-[13px] font-bold text-[#131b2e] shadow-xs cursor-pointer"
+              className="inline-flex min-h-11 items-center gap-2 px-3.5 py-2 rounded-full bg-white border border-[#c2c6d6]/40 text-[13px] font-bold text-[#131b2e] shadow-xs cursor-pointer"
             >
               <span className="material-symbols-outlined text-[18px]">menu</span>
               <span>Menu</span>

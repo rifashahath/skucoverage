@@ -26,3 +26,11 @@ test('GTIN check validates only supported length and modulo-10 format', () => {
   assert.equal(validateGtinFormat('036000291453'), false);
   assert.equal(validateGtinFormat('abc'), false);
 });
+
+test('channel readiness view keeps narrow-screen controls and cards wrap-safe', async () => {
+  const source = await import('node:fs/promises').then(({ readFile }) => readFile(new URL('../src/components/ChannelReadinessView.tsx', import.meta.url), 'utf8'));
+  assert.match(source, /grid-cols-1 min-\[350px\]:grid-cols-3/);
+  assert.match(source, /min-h-11 w-full lg:w-auto/);
+  assert.match(source, /min-\[430px\]:flex-row/);
+  assert.match(source, /overflow-x-clip/);
+});

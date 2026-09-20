@@ -51,7 +51,13 @@
 }
 
 body {
+  min-width: 0;
+  overflow-x: clip;
   font-family: var(--font-sans);
+}
+
+button, input, select, textarea {
+  max-width: 100%;
 }
 
 @font-face {
