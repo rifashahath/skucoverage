@@ -78,7 +78,7 @@ export const CatalogHealthView: React.FC<CatalogHealthViewProps> = ({
                     type="text"
                     value={storeInput}
                     onChange={(e) => setStoreInput(e.target.value)}
-                    placeholder="your-store.myshopify.com"
+                    placeholder="yourstore.com or store.myshopify.com"
                     required
                     className="w-full bg-transparent text-[14px] text-[#131b2e] placeholder:text-[#727785] focus:outline-hidden py-2 tracking-tight truncate"
                   />
@@ -102,8 +102,8 @@ export const CatalogHealthView: React.FC<CatalogHealthViewProps> = ({
               <button
                 type="button"
                 onClick={() => {
-                  setStoreInput('allbirds.myshopify.com');
-                  onStartAudit('allbirds.myshopify.com');
+                  setStoreInput('allbirds.com');
+                  onStartAudit('allbirds.com');
                 }}
                 className="font-bold text-[#0058be] hover:text-[#2170e4] hover:underline cursor-pointer inline-flex items-center gap-1 bg-[#eaedff] px-3 py-1 rounded-full transition-all"
               >

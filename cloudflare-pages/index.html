@@ -641,7 +641,10 @@ A clean interface that helps you stay focused and keep everything simple.</p></d
 
   function normalizeStore(input) {
     let s = (input || '').trim().toLowerCase();
-    s = s.replace(/^https?:\/\//, '').replace(/\/.*$/, '');
+    s = s.replace(/^https?:\/\//, '').replace(/\/.*$/, '').replace(/\.+$/, '');
+    if (s && !s.includes('.')) {
+      s = s + '.myshopify.com';
+    }
     return s;
   }
 
@@ -802,9 +805,9 @@ A clean interface that helps you stay focused and keep everything simple.</p></d
   async function doScan(storeRaw) {
     const store = normalizeStore(storeRaw);
     const errorDiv = document.getElementById('inline-scan-error');
-    if (!store || !store.endsWith('.myshopify.com')) {
+    if (!store || !store.includes('.') || !/^[a-z0-9][a-z0-9-.]*\.[a-z]{2,}$/i.test(store)) {
       if (errorDiv) {
-        errorDiv.innerText = 'Please enter a valid Shopify domain (e.g. your-store.myshopify.com)';
+        errorDiv.innerText = 'Please enter a valid store domain (e.g. yourstore.com or store.myshopify.com)';
         errorDiv.style.display = 'block';
       }
       return;
@@ -879,7 +882,7 @@ A clean interface that helps you stay focused and keep everything simple.</p></d
        wrapper.style.position = 'relative';
        
        wrapper.innerHTML = '<form id="inline-scan-form" style="display:flex; gap:12px; justify-content:center; width:100%; max-width:650px; margin: 0 auto; align-items: center;">' +
-         '<input type="text" name="store" placeholder="your-store.myshopify.com" style="flex:1; padding: 18px 24px; border-radius: 100px; border: 1px solid rgba(200,200,200,0.8); font-size: 16px; outline: none; box-shadow: 0 8px 32px rgba(0,0,0,0.04); background: rgba(255,255,255,0.9); backdrop-filter: blur(10px); color: #333; font-weight: 500;" required>' +
+         '<input type="text" name="store" placeholder="yourstore.com or store.myshopify.com" style="flex:1; padding: 18px 24px; border-radius: 100px; border: 1px solid rgba(200,200,200,0.8); font-size: 16px; outline: none; box-shadow: 0 8px 32px rgba(0,0,0,0.04); background: rgba(255,255,255,0.9); backdrop-filter: blur(10px); color: #333; font-weight: 500;" required>' +
          '<div id="custom-scan-btn-wrapper" style="padding: 4px; backdrop-filter: blur(5px); background-color: rgba(255, 255, 255, 0.4); border: 1px solid rgba(255, 255, 255, 0.5); border-radius: 100px;"></div>' +
        '</form>' +
        '<div id="inline-scan-error" style="color: #dc2626; font-size: 14px; font-weight: 600; margin-top: 10px; text-align: center; display: none; background: rgba(254, 242, 242, 0.95); padding: 8px 18px; border-radius: 99px; border: 1px solid #fecaca;"></div>' +

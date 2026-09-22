@@ -121,7 +121,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                   type="text"
                   value={storeInput}
                   onChange={(e) => setStoreInput(e.target.value)}
-                  placeholder="your-store.myshopify.com"
+                  placeholder="yourstore.com or store.myshopify.com"
                   required
                   className="min-w-0 flex-1 px-4 py-2.5 bg-[#f2f3ff] rounded-xl text-[14px] font-mono text-[#131b2e] border border-transparent focus:border-[#0058be] focus:outline-hidden focus:ring-2 focus:ring-[#0058be]/20"
                 />

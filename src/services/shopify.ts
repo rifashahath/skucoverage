@@ -212,18 +212,57 @@ async function readCapped(response: Response): Promise<string> {
   return new TextDecoder().decode(merged);
 }
 
+const RESERVED_TLDS = new Set([
+  'local',
+  'localhost',
+  'internal',
+  'arpa',
+  'invalid',
+  'test',
+  'example',
+  'lan',
+  'home',
+  'corp',
+  'onion',
+]);
+
+const RESERVED_HOSTNAMES = new Set([
+  'localhost',
+  'metadata',
+  'metadata.google.internal',
+  'instance-data',
+]);
+
 /**
  * Accepts the forms merchants actually paste: bare host, host with scheme,
  * host with a path, host with a trailing slash, and mixed case.
+ * If user enters shorthand handle (e.g. "gymshark"), auto-appends .myshopify.com.
  */
 export function normalizeStoreHost(value: string): string {
-  const input = String(value ?? '').trim();
+  let input = String(value ?? '').trim().toLowerCase();
   if (input === '') throw new ShopifyFetchError('invalid_store_url', 'Store URL is required.', 400);
   if (input.length > 253) throw new ShopifyFetchError('invalid_store_url', 'Store URL is too long.', 400);
 
+  // Strip protocol prefix if present
+  input = input.replace(/^https?:\/\//, '');
+  // Strip trailing path/query/fragment if present
+  input = input.replace(/[\/?#].*$/, '');
+  // Strip trailing dots
+  input = input.replace(/\.+$/, '').trim();
+
+  // If input is purely numeric or hexadecimal IP representation, reject immediately
+  if (/^0x[0-9a-f]+$/i.test(input) || /^\d+$/.test(input)) {
+    throw new ShopifyFetchError('invalid_store_url', 'IP addresses cannot be scanned.', 400);
+  }
+
+  // If user entered just a handle without dots (e.g. "allbirds"), auto-append .myshopify.com
+  if (!input.includes('.')) {
+    input = `${input}.myshopify.com`;
+  }
+
   let url: URL;
   try {
-    url = input.includes('://') ? new URL(input) : new URL(`https://${input}`);
+    url = new URL(`https://${input}`);
   } catch {
     throw new ShopifyFetchError('invalid_store_url', 'Store URL is not a valid domain.', 400);
   }
@@ -235,10 +274,10 @@ export function normalizeStoreHost(value: string): string {
 /**
  * Single choke point for the SSRF policy.
  *
- * The allow-list is the real control: only `*.myshopify.com` over HTTPS can
- * ever be requested, which structurally excludes localhost, private ranges,
- * link-local addresses and cloud metadata endpoints. The explicit denies below
- * are defence in depth and produce clearer errors.
+ * Enforces HTTPS over standard port 443 with no credentials.
+ * Structurally excludes localhost, private IP ranges (IPv4 & IPv6),
+ * integer/hex IPs, link-local addresses, internal cloud metadata endpoints,
+ * and reserved internal TLDs while allowing any valid public FQDN (custom domains or myshopify.com).
  */
 export function assertAllowedShopifyUrl(url: URL): void {
   if (url.protocol !== 'https:') {
@@ -253,31 +292,52 @@ export function assertAllowedShopifyUrl(url: URL): void {
 
   const host = url.hostname.toLowerCase();
 
+  // Block IPv6, IP literals, brackets, colons
   if (host.startsWith('[') || host.includes(':')) {
     throw new ShopifyFetchError('invalid_store_url', 'IP literals cannot be scanned.', 400);
   }
+
+  // Block standard IPv4 decimal (e.g. 127.0.0.1, 169.254.169.254)
   if (/^\d{1,3}(\.\d{1,3}){3}$/.test(host)) {
     throw new ShopifyFetchError('invalid_store_url', 'IP addresses cannot be scanned.', 400);
   }
 
-  // The allow-list. `*.myshopify.com` only, and the subdomain label must be a
-  // single valid shop handle so that `evil.com#.myshopify.com` style inputs and
-  // nested hosts are rejected.
-  const suffix = '.myshopify.com';
-  if (!host.endsWith(suffix)) {
-    throw new ShopifyFetchError(
-      'unsupported_domain',
-      'Only myshopify.com storefronts can be scanned. Enter your store as your-store.myshopify.com.',
-      400,
-    );
+  // Block integer/hex/octal encoded IP formats (e.g. 2130706433, 0x7f000001, 127.1)
+  if (/^(0x[0-9a-f]+|\d+)$/i.test(host) || (/^(\d+|0x[0-9a-f]+)(\.(\d+|0x[0-9a-f]+))*$/i.test(host) && !/[a-z]/i.test(host))) {
+    throw new ShopifyFetchError('invalid_store_url', 'IP addresses cannot be scanned.', 400);
   }
-  const handle = host.slice(0, -suffix.length);
-  if (!/^[a-z0-9][a-z0-9-]{0,61}[a-z0-9]$/.test(handle)) {
-    throw new ShopifyFetchError(
-      'unsupported_domain',
-      'That does not look like a valid myshopify.com store handle.',
-      400,
-    );
+
+  // Block known cloud metadata and reserved local hostnames
+  if (RESERVED_HOSTNAMES.has(host)) {
+    throw new ShopifyFetchError('invalid_store_url', 'Internal hostnames cannot be scanned.', 400);
+  }
+
+  // Must be a valid Fully Qualified Domain Name with at least one dot
+  if (!host.includes('.')) {
+    throw new ShopifyFetchError('invalid_store_url', 'Please enter a valid domain (e.g. store.com or store.myshopify.com).', 400);
+  }
+
+  const parts = host.split('.');
+  const tld = parts[parts.length - 1];
+
+  // Block reserved / internal TLDs
+  if (RESERVED_TLDS.has(tld)) {
+    throw new ShopifyFetchError('invalid_store_url', 'Internal domains cannot be scanned.', 400);
+  }
+
+  // Validate TLD structure (must be at least 2 alpha characters or internationalized xn--)
+  if (!/^[a-z]{2,}$|^xn--[a-z0-9]+$/i.test(tld)) {
+    throw new ShopifyFetchError('invalid_store_url', 'Invalid domain top-level extension.', 400);
+  }
+
+  // Validate each domain label
+  for (const part of parts) {
+    if (!part || part.length > 63) {
+      throw new ShopifyFetchError('invalid_store_url', 'Invalid domain name structure.', 400);
+    }
+    if (!/^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/i.test(part)) {
+      throw new ShopifyFetchError('invalid_store_url', 'Domain contains invalid characters.', 400);
+    }
   }
 }
 
