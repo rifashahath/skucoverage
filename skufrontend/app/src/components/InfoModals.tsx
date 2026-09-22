@@ -97,7 +97,24 @@ export const InfoModals: React.FC<InfoModalProps> = ({
                 Zero-friction Setup
               </div>
               <p className="text-[#424754]">
-                Works on any public Shopify store without requiring app installation or OAuth permissions.
+                Works on any public Shopify store without requiring app installation, private access tokens, or database write permissions.
+              </p>
+            </div>
+
+            <div className="p-4 rounded-xl border border-[#c2c6d6]/40 text-[12px] text-[#424754] flex flex-col gap-2">
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-[#131b2e]">Support &amp; Inquiries</span>
+                <span className="text-[#006c49] font-semibold flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#006c49]" />
+                  Replies in &lt; 4 hours
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5 text-[#0058be] font-mono">
+                <span className="material-symbols-outlined text-[15px]">mail</span>
+                <a href="mailto:support@skucoverage.tech" className="hover:underline">support@skucoverage.tech</a>
+              </div>
+              <p className="text-[11px] text-[#727785] pt-1 border-t border-[#eaedff]">
+                SKUcoverage is operated by SKUcoverage Technologies. All subscriptions backed by a 14-day refund policy and 1-click self-serve cancellation.
               </p>
             </div>
           </div>

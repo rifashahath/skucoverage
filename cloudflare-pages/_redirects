@@ -1,6 +1,9 @@
+/privacy /privacy.html 200
+/terms /terms.html 200
 /app/signup /app/ 200
 /app/login /app/ 200
 /app/dashboard /app/ 200
 /app/settings /app/ 200
 /app/audit/* /app/ 200
 /app/onboarding /app/ 200
+

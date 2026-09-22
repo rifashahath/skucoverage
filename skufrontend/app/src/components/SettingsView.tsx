@@ -259,24 +259,24 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           </div>
         </section>
 
-        {/* Section 4: Danger Zone */}
+        {/* Section 4: Store Connection & Data Controls */}
         <section className="flex flex-col gap-4 pt-4 border-t border-[#eaedff]">
-          <div className="flex items-center gap-2 text-[#ba1a1a]">
-            <span className="material-symbols-outlined text-[20px]">warning</span>
-            <h2 className="text-[16px] font-bold">Danger Zone</h2>
+          <div className="flex items-center gap-2 text-[#424754]">
+            <span className="material-symbols-outlined text-[20px] text-[#0058be]">admin_panel_settings</span>
+            <h2 className="text-[16px] font-bold text-[#131b2e]">Store Connection &amp; Data Controls</h2>
           </div>
 
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 p-4 rounded-xl bg-[#ffdad6]/40 border border-[#ba1a1a]/20">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 p-4 rounded-xl bg-[#faf8ff] border border-[#c2c6d6]/30">
             <div className="flex flex-col">
               <span className="text-[14px] font-bold text-[#131b2e]">Disconnect Shopify Store</span>
               <span className="text-[12px] text-[#424754]">
-                Removes API access tokens and pauses all scheduled weekly diagnostics.
+                Disconnects this storefront domain from your account and pauses scheduled audits.
               </span>
             </div>
             <button
               type="button"
               onClick={onDisconnectStore}
-              className="px-4 py-2 rounded-full border border-[#ba1a1a] text-[#ba1a1a] hover:bg-[#ba1a1a] hover:text-white font-bold text-[13px] transition-all cursor-pointer shrink-0"
+              className="px-4 py-2 rounded-full border border-[#ba1a1a]/50 text-[#ba1a1a] hover:bg-[#ba1a1a] hover:text-white font-bold text-[13px] transition-all cursor-pointer shrink-0"
             >
               Disconnect Store
             </button>

@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Privacy Policy – SKUcoverage</title>
+  <meta name="description" content="Privacy Policy for SKUcoverage catalog health and Google Merchant Center compliance engine.">
+  <link rel="icon" href="/framerusercontent.com/images/RXZaWpPO8xqy7UXViVlRYw1NH14.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      color: #1e293b;
+      background-color: #f8fafc;
+      line-height: 1.65;
+      padding: 0;
+      margin: 0;
+    }
+    header {
+      background: rgba(255, 255, 255, 0.9);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid #e2e8f0;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+    .header-container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 16px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .brand {
+      font-size: 18px;
+      font-weight: 800;
+      color: #0f172a;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .back-link {
+      font-size: 14px;
+      font-weight: 600;
+      color: #2563eb;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .back-link:hover { text-decoration: underline; }
+    main {
+      max-width: 900px;
+      margin: 40px auto 80px;
+      padding: 0 24px;
+    }
+    .card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 20px;
+      padding: 48px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    }
+    h1 {
+      font-size: 32px;
+      font-weight: 800;
+      color: #0f172a;
+      margin-bottom: 8px;
+    }
+    .updated {
+      font-size: 14px;
+      color: #64748b;
+      margin-bottom: 32px;
+      display: block;
+    }
+    h2 {
+      font-size: 20px;
+      font-weight: 700;
+      color: #0f172a;
+      margin: 32px 0 12px;
+    }
+    p { margin-bottom: 16px; color: #475569; font-size: 15px; }
+    ul { margin: 0 0 16px 24px; color: #475569; font-size: 15px; }
+    li { margin-bottom: 8px; }
+    .highlight-box {
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      border-radius: 12px;
+      padding: 20px;
+      margin: 24px 0;
+    }
+    .highlight-box p { margin-bottom: 0; color: #1e40af; font-weight: 500; }
+    footer {
+      border-top: 1px solid #e2e8f0;
+      padding: 32px 24px;
+      text-align: center;
+      font-size: 13px;
+      color: #64748b;
+      background: #ffffff;
+    }
+    footer a { color: #2563eb; text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="header-container">
+      <a href="/" class="brand">
+        <span>SKUcoverage</span>
+      </a>
+      <a href="/" class="back-link">← Back to Home</a>
+    </div>
+  </header>
+
+  <main>
+    <div class="card">
+      <h1>Privacy Policy</h1>
+      <span class="updated">Last updated: September 20, 2026</span>
+
+      <div class="highlight-box">
+        <p><strong>Summary:</strong> SKUcoverage operates on a strict zero-access, read-only audit architecture. We only read publicly available Shopify storefront feeds (<code>/products.json</code>). We never access, store, or process customer personal information, payment credentials, or Shopify admin logins.</p>
+      </div>
+
+      <h2>1. Introduction</h2>
+      <p>SKUcoverage ("we", "us", or "our") provides automated catalog health diagnostics, Google Merchant Center compliance validation, and remediation exports for e-commerce merchants. This Privacy Policy outlines how we handle information collected through our website (<a href="https://skucoverage.tech" style="color:#2563eb;">skucoverage.tech</a>) and our edge audit APIs.</p>
+
+      <h2>2. What Information We Access &amp; Collect</h2>
+      <p><strong>A. Public Storefront Data:</strong> When you run an audit by entering your <code>myshopify.com</code> store URL, our edge crawlers request the public product feed located at <code>https://[store].myshopify.com/products.json</code>. This feed is public by default on Shopify stores and contains product titles, descriptions, image URLs, variant barcodes, and handle identifiers.</p>
+      <p><strong>B. Information We NEVER Access:</strong></p>
+      <ul>
+        <li>Customer names, emails, addresses, or phone numbers</li>
+        <li>Order histories, revenues, or transaction volumes</li>
+        <li>Payment details, credit card numbers, or bank account credentials</li>
+        <li>Shopify admin passwords, API tokens, or collaborator permissions</li>
+      </ul>
+      <p><strong>C. Account &amp; Contact Information:</strong> If you voluntarily subscribe to weekly monitoring reports or create a paid account, we collect your email address and store domain. Billing transactions are handled securely by Stripe.</p>
+
+      <h2>3. How We Process Catalog Data</h2>
+      <p>Catalog feeds are analyzed ephemerally in memory using deterministic algorithms (such as GS1 Modulo-10 barcode checksum calculation and Google Taxonomy tree matching). Audit summaries and diagnostic reports are stored in encrypted Cloudflare D1 databases and R2 cloud storage solely for the purpose of presenting your results and generating your downloadable CSV report.</p>
+
+      <h2>4. Zero Data Monetization Guarantee</h2>
+      <p>We do <strong>not</strong> sell, rent, license, or monetize your product catalog data. Your catalog data is never shared with competitors, third-party advertisers, or data aggregators.</p>
+
+      <h2>5. Security &amp; Infrastructure</h2>
+      <p>Our systems run on Cloudflare Workers and Cloudflare Edge infrastructure with global 256-bit TLS/SSL encryption. Remediation CSV downloads are secured using time-limited HMAC cryptographic signatures to prevent unauthorized access.</p>
+
+      <h2>6. Data Retention &amp; Deletion</h2>
+      <p>Free anonymous audit reports are retained ephemerally and automatically purged after 30 days. You may request immediate deletion of any audit records or email subscriptions associated with your domain by contacting us at <a href="mailto:support@skucoverage.tech" style="color:#2563eb;">support@skucoverage.tech</a>.</p>
+
+      <h2>7. GDPR &amp; CCPA Compliance</h2>
+      <p>Under the European Union General Data Protection Regulation (GDPR) and California Consumer Privacy Act (CCPA), you retain the right to access, rectify, or delete your contact and account records. Requests can be submitted directly to our support team.</p>
+
+      <h2>8. Contact Us</h2>
+      <p>For questions or privacy concerns regarding this policy, please reach out to us at:</p>
+      <p><strong>SKUcoverage Security &amp; Privacy Team</strong><br>
+      Email: <a href="mailto:support@skucoverage.tech" style="color:#2563eb;">support@skucoverage.tech</a><br>
+      Website: <a href="https://skucoverage.tech" style="color:#2563eb;">skucoverage.tech</a></p>
+    </div>
+  </main>
+
+  <footer>
+    <p>&copy; 2026 SKUcoverage. All rights reserved. &bull; <a href="/terms">Terms of Service</a> &bull; <a href="/privacy">Privacy Policy</a></p>
+  </footer>
+</body>
+</html>

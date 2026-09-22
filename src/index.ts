@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
+import { z } from 'zod';
 import type { ContentfulStatusCode } from 'hono/utils/http-status';
 import type { Env, AuditRow, AuthenticatedUser } from './types';
 import { fetchShopifyProducts, normalizeStoreHost } from './services/shopify';
@@ -8,6 +9,23 @@ import { buildAuditCsv, signedCsvUrl, uploadAuditCsv, verifyDownloadSignature } 
 import { sendAuditCompleteEmail } from './services/email';
 import subscribeRoutes from './routes/subscribe';
 import webhookRoutes from './routes/webhook';
+
+/* ------------------------------------------------------------------ */
+/* Zod request schemas — single source of truth for input validation   */
+/* ------------------------------------------------------------------ */
+const StoreUrlBody = z.object({
+  storeUrl: z.string().min(1, 'storeUrl required').max(253, 'storeUrl too long'),
+});
+
+const EmailSubscribeBody = z.object({
+  email: z.string().email('Invalid email address'),
+  storeUrl: z.string().min(1, 'storeUrl required'),
+});
+
+const PatchMeBody = z.object({
+  storeUrl: z.string().min(1, 'storeUrl required'),
+});
+
 
 const app = new Hono<{ Bindings: Env }>();
 app.use('/api/*', async (c, next) => {
@@ -102,9 +120,9 @@ app.route('/api/webhook', webhookRoutes);
 app.post('/api/audit/free', async (c) => {
   const user = await requireUser(c);
   if (!user) return c.json({ error: 'Authentication required' }, 401);
-  const input = await readJson(c);
-  const storeUrl = typeof input?.storeUrl === 'string' ? input.storeUrl : '';
-  if (!storeUrl) return c.json({ error: 'storeUrl required' }, 400);
+  const parsed = StoreUrlBody.safeParse(await readJson(c));
+  if (!parsed.success) return c.json({ error: parsed.error.issues[0]?.message ?? 'storeUrl required' }, 400);
+  const { storeUrl } = parsed.data;
   let host: string;
   try {
     host = normalizeStoreHost(storeUrl);
@@ -129,11 +147,14 @@ app.get('/api/audit/:auditId/csv', async (c) => {
   const user = await requireUser(c);
   if (!user) return c.json({ error: 'Authentication required' }, 401);
   const auditId = c.req.param('auditId');
+  // Ownership check BEFORE signature verification: if the requesting user
+  // does not own this audit, a forged signature for someone else's auditId
+  // is rejected at the DB layer before any crypto is performed.
+  const row = await c.env.DB.prepare('SELECT csv_key, audit_data FROM audits WHERE id = ? AND user_id = ?').bind(auditId, user.id).first<{ csv_key: string | null; audit_data: string | null }>();
+  if (!row) return c.json({ error: 'Audit not found' }, 404);
   const expires = Number(c.req.query('expires'));
   const signature = c.req.query('signature') ?? '';
   if (!Number.isSafeInteger(expires) || !(await verifyDownloadSignature(c.env.CSV_SIGNING_SECRET, auditId, expires, signature))) return c.json({ error: 'Invalid or expired download URL' }, 401);
-  const row = await c.env.DB.prepare('SELECT csv_key, audit_data FROM audits WHERE id = ? AND user_id = ?').bind(auditId, user.id).first<{ csv_key: string | null; audit_data: string | null }>();
-  if (!row) return c.json({ error: 'Audit not found' }, 404);
   if (row.csv_key && c.env.R2) {
     try {
       const object = await c.env.R2.get(row.csv_key);
@@ -189,8 +210,8 @@ app.get('/api/me', async (c) => {
     storeUrl: userRow?.store_url ?? '',
     auditsToday,
     limits: {
-      auditsPerDay: isPaid ? null : 3,
-      skuCap: isPaid ? 10000 : 100,
+      auditsPerDay: isPaid ? dailyAuditLimitForPlan(plan) : 3,
+      skuCap: scanLimitForPlan(plan),
     },
   });
 });
@@ -198,9 +219,9 @@ app.get('/api/me', async (c) => {
 app.patch('/api/me', async (c) => {
   const user = await requireUser(c);
   if (!user) return c.json({ error: 'Authentication required' }, 401);
-  const input = await readJson(c);
-  const storeUrl = typeof input?.storeUrl === 'string' ? input.storeUrl : '';
-  if (!storeUrl) return c.json({ error: 'storeUrl required' }, 400);
+  const parsed = PatchMeBody.safeParse(await readJson(c));
+  if (!parsed.success) return c.json({ error: parsed.error.issues[0]?.message ?? 'storeUrl required' }, 400);
+  const { storeUrl } = parsed.data;
   let host: string;
   try {
     host = normalizeStoreHost(storeUrl);
@@ -212,8 +233,16 @@ app.patch('/api/me', async (c) => {
   if (existingById) {
     await c.env.DB.prepare('UPDATE users SET store_url = ?, email = COALESCE(?, email) WHERE id = ?').bind(host, user.email, user.id).run();
   } else {
-    const existingByEmail = user.email ? await c.env.DB.prepare('SELECT id FROM users WHERE LOWER(email) = LOWER(?)').bind(user.email).first<{ id: string }>() : null;
+    const existingByEmail = user.email ? await c.env.DB.prepare('SELECT id, subscription_plan FROM users WHERE LOWER(email) = LOWER(?)').bind(user.email).first<{ id: string; subscription_plan: string }>() : null;
     if (existingByEmail) {
+      // Guard: never reassign the primary key of a paid subscriber.
+      // A paid account can only be accessed through the Supabase UUID that
+      // originally created it. Allowing the swap would let anyone who creates
+      // a new Supabase account with a victim's email immediately inherit their
+      // subscription plan and entire audit history.
+      if (existingByEmail.subscription_plan !== 'free') {
+        return c.json({ error: 'This email is associated with an existing paid account. Please sign in with your original credentials or contact support.' }, 409);
+      }
       // Re-pointing the primary key used to orphan every audit row that
       // referenced the old id. Move the child rows in the same batch so the
       // two statements cannot half-apply.
@@ -347,15 +376,35 @@ app.post('/api/audit/anonymous', async (c) => {
 });
 
 app.post('/api/email/subscribe', async (c) => {
-  const input = await readJson(c);
-  const rawEmail = typeof input?.email === 'string' ? input.email.trim() : '';
-  const storeUrl = typeof input?.storeUrl === 'string' ? input.storeUrl : '';
-  
-  if (!rawEmail || !storeUrl) return c.json({ error: 'email and storeUrl required' }, 400);
+  // IP-based rate limit: max 3 subscribe calls per IP per hour.
+  // Prevents bulk pre-registration squatting and DB spam attacks.
+  const subscribeIp = c.req.header('cf-connecting-ip') ?? c.req.header('CF-Connecting-IP') ?? '';
+  if (subscribeIp) {
+    const now = new Date();
+    const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000).toISOString();
+    const EMAIL_SUBSCRIBE_LIMIT_PER_HOUR = 3;
+    try {
+      const updated = await c.env.DB.prepare(
+        `INSERT INTO scan_rate_limits (ip, window_start, count) VALUES (?, ?, 1)
+         ON CONFLICT(ip) DO UPDATE SET
+           window_start = CASE WHEN scan_rate_limits.window_start < ? THEN excluded.window_start ELSE scan_rate_limits.window_start END,
+           count = CASE WHEN scan_rate_limits.window_start < ? THEN 1 ELSE scan_rate_limits.count + 1 END
+         RETURNING count`,
+      ).bind(`sub:${subscribeIp}`, now.toISOString(), oneHourAgo, oneHourAgo).first<{ count: number }>();
+      if (Number(updated?.count ?? 0) > EMAIL_SUBSCRIBE_LIMIT_PER_HOUR) {
+        return c.json({ error: 'Too many requests. Please try again later.' }, 429);
+      }
+    } catch {
+      // Rate-limit table unavailable — log but allow through to avoid
+      // blocking legitimate signups due to an infrastructure issue.
+      console.warn('[skucoverage] email/subscribe: rate limit check failed');
+    }
+  }
 
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  const email = rawEmail.toLowerCase();
-  if (!emailRegex.test(email)) return c.json({ error: 'Invalid email address' }, 400);
+  const bodyParsed = EmailSubscribeBody.safeParse(await readJson(c));
+  if (!bodyParsed.success) return c.json({ error: bodyParsed.error.issues[0]?.message ?? 'email and storeUrl required' }, 400);
+  const email = bodyParsed.data.email.toLowerCase().trim();
+  const { storeUrl } = bodyParsed.data;
 
   let host: string;
   try {
@@ -390,14 +439,24 @@ app.post('/api/audit/ai-readiness', (c) => runSynchronousAudit(c, 'ai_readiness'
 
 async function processWeeklyAudit(env: Env, auditId: string, userId: string, storeUrl: string, productLimit: number = FREE_SCAN_LIMIT): Promise<void> {
   try {
+    // Re-validate the subscription at execution time. A user may cancel between
+    // the moment the job was queued and when it actually runs. Capping to the
+    // current plan also prevents a stale productLimit from granting extra compute.
+    const currentPlan = await loadPlan(env, userId);
+    if (currentPlan === 'free') {
+      await env.DB.prepare("UPDATE audits SET status = 'error', error = 'Subscription cancelled before audit ran.', updated_at = ? WHERE id = ? AND user_id = ?")
+        .bind(new Date().toISOString(), auditId, userId).run();
+      return;
+    }
+    const effectiveLimit = Math.min(productLimit, scanLimitForPlan(currentPlan));
     const previous = await env.DB.prepare("SELECT audit_data FROM audits WHERE user_id = ? AND status = ? AND id != ? ORDER BY created_at DESC LIMIT 1").bind(userId, "completed", auditId).first<{ audit_data: string | null }>();
-    const products = await fetchShopifyProducts(storeUrl, productLimit);
+    const products = await fetchShopifyProducts(storeUrl, effectiveLimit);
     const current = runCatalogAudit(`${auditId}:current`, storeUrl, products);
     const auditObj = (current.payload as Record<string, unknown> | undefined)?.audit as Record<string, unknown> | undefined;
     if (auditObj) {
       auditObj.scanned = products.length;
-      auditObj.limited = products.length >= productLimit;
-      auditObj.scanLimit = productLimit;
+      auditObj.limited = products.length >= effectiveLimit;
+      auditObj.scanLimit = effectiveLimit;
     }
     const report = previous?.audit_data ? runWeeklyDiff(auditId, current, JSON.parse(previous.audit_data)) : current;
     let csvKey: string | null = null;
@@ -449,10 +508,15 @@ async function readJson(c: { req: { json: () => Promise<unknown> } }): Promise<R
 export async function requireUser(c: { req: { header: (name: string) => string | undefined }; env: Env }): Promise<AuthenticatedUser | null> {
   const authorization = c.req.header('authorization');
   if (!authorization?.startsWith('Bearer ')) return null;
-  const rawUrl = c.env.SUPABASE_URL || 'https://rpogcdhsxmqlrzppqnmo.supabase.co';
-  const rawKey = c.env.SUPABASE_ANON_KEY || 'sb_publishable_Dy1CrhUzq4wnXQgYxVWR5w_DXyPFDfh';
-  const url = String(rawUrl).trim().replace(/\/+$/, '');
-  const key = String(rawKey).trim();
+  // Fail closed: if the Supabase configuration is missing the server is
+  // misconfigured. Return null (unauthenticated) and log — do NOT fall back
+  // to hardcoded credentials that may be committed to the repository.
+  if (!c.env.SUPABASE_URL || !c.env.SUPABASE_ANON_KEY) {
+    console.error('[skucoverage] requireUser: SUPABASE_URL or SUPABASE_ANON_KEY is not configured');
+    return null;
+  }
+  const url = String(c.env.SUPABASE_URL).trim().replace(/\/+$/, '');
+  const key = String(c.env.SUPABASE_ANON_KEY).trim();
   try {
     const response = await fetch(`${url}/auth/v1/user`, {
       headers: { apikey: key, authorization }

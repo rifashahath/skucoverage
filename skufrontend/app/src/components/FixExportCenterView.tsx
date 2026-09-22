@@ -14,6 +14,7 @@ export const FixExportCenterView: React.FC<FixExportCenterViewProps> = ({
 }) => {
   const [downloadedShopify, setDownloadedShopify] = useState(false);
   const [batchApplied, setBatchApplied] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
 
   /*
    * PREVIOUS BEHAVIOUR (removed):
@@ -148,9 +149,64 @@ export const FixExportCenterView: React.FC<FixExportCenterViewProps> = ({
 
       {/* Export Options */}
       <div className="bg-white rounded-3xl p-6 border border-[#c2c6d6]/40 shadow-xs flex flex-col gap-4">
-        <h2 className="text-[18px] font-extrabold text-[#131b2e]">
-          Download Formatted Data Files
-        </h2>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+          <h2 className="text-[18px] font-extrabold text-[#131b2e]">
+            Download Formatted Data Files
+          </h2>
+          <button
+            type="button"
+            onClick={() => setShowPreview(!showPreview)}
+            className="inline-flex items-center gap-1.5 text-[12px] font-bold text-[#0058be] hover:underline cursor-pointer bg-[#eaedff] px-3 py-1 rounded-full transition-colors"
+          >
+            <span className="material-symbols-outlined text-[16px]">{showPreview ? 'visibility_off' : 'preview'}</span>
+            <span>{showPreview ? 'Hide Sample Preview' : 'Preview Fix List Data'}</span>
+          </button>
+        </div>
+
+        {/* Live Sample Preview Table */}
+        {showPreview && (
+          <div className="overflow-x-auto rounded-2xl border border-[#c2c6d6]/30 bg-[#faf8ff] p-4 text-[12px]">
+            <div className="font-bold text-[#131b2e] mb-2.5 flex items-center gap-1.5">
+              <span className="material-symbols-outlined text-[#0058be] text-[16px]">visibility</span>
+              <span>Sample Export Structure (First 5 Issues)</span>
+            </div>
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="border-b border-[#eaedff] text-[11px] uppercase tracking-wider text-[#727785]">
+                  <th className="pb-2 font-bold">Issue Type</th>
+                  <th className="pb-2 font-bold">Severity</th>
+                  <th className="pb-2 font-bold">Affected Items</th>
+                  <th className="pb-2 font-bold">Actionable Remediation</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#eaedff]/60">
+                {auditData.issues.slice(0, 5).map((issue) => (
+                  <tr key={issue.id} className="hover:bg-white/60 transition-colors">
+                    <td className="py-2.5 font-bold text-[#131b2e]">{issue.title}</td>
+                    <td className="py-2.5">
+                      <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                        issue.severity === 'HIGH' ? 'bg-[#ffdad6] text-[#93000a]' :
+                        issue.severity === 'MEDIUM' ? 'bg-[#ffddb8] text-[#825100]' :
+                        'bg-[#e2e7ff] text-[#0058be]'
+                      }`}>
+                        {issue.severity}
+                      </span>
+                    </td>
+                    <td className="py-2.5 font-mono text-[#424754]">{issue.count} products</td>
+                    <td className="py-2.5 text-[#424754] max-w-xs truncate">{issue.rule || issue.description}</td>
+                  </tr>
+                ))}
+                {auditData.issues.length === 0 && (
+                  <tr>
+                    <td colSpan={4} className="py-4 text-center text-[#727785]">
+                      No issues currently flagged in this catalog snapshot.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Card 1: Catalog Action & Fix List CSV */}

@@ -103,7 +103,12 @@ export const ISSUE_FIX_MAP: Record<string, IssueFixMapping> = {
  */
 export function neutralizeFormula(value: string): string {
   if (value === '') return value;
-  return /^[=+\-@\t\r]/.test(value) ? `'${value}` : value;
+  // Strip embedded newlines BEFORE the formula-trigger check.
+  // A product title containing \r or \n would create a new CSV row whose
+  // first character could be = + - @ — the apostrophe prefix only guards
+  // a single cell and would not protect the injected row.
+  const sanitized = value.replace(/[\r\n]/g, ' ');
+  return /^[=+\-@\t]/.test(sanitized) ? `'${sanitized}` : sanitized;
 }
 
 export function buildAuditCsv(report: Record<string, unknown>): string {

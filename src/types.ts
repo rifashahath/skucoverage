@@ -10,6 +10,10 @@ export interface Env {
   STRIPE_WEBHOOK_SECRET?: string;
   STRIPE_PRICE_19?: string;
   STRIPE_PRICE_39?: string;
+  DODO_PAYMENTS_API_KEY?: string;
+  DODO_WEBHOOK_SECRET?: string;
+  DODO_PRODUCT_ID_PRO?: string;
+  DODO_PRODUCT_ID_SCALE?: string;
   BREVO_API_KEY?: string;
   BREVO_SENDER_EMAIL?: string;
 }

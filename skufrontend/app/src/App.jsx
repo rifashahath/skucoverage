@@ -116,116 +116,159 @@ function AuthScreen({ initialMode = 'signup' }) {
   const isSignup = mode === 'signup';
 
   return (
-    <div className="min-h-screen bg-[#faf8ff] flex items-center justify-center p-4">
-      <div className="w-full max-w-md bg-white rounded-[24px] shadow-[0_20px_50px_rgba(0,0,0,0.08)] border border-[#e2e8f0] p-8 sm:p-10 flex flex-col gap-6">
-        {/* Brand */}
-        <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#0058be] to-[#2170e4] flex items-center justify-center text-white shadow-xs">
-            <span className="material-symbols-outlined text-[22px]">barcode</span>
+    <div className="min-h-screen bg-[#faf8ff] flex items-center justify-center p-4 sm:p-6 lg:p-8">
+      <div className="w-full max-w-4xl bg-white rounded-[28px] shadow-[0_25px_60px_rgba(0,0,0,0.07)] border border-[#e2e8f0] overflow-hidden flex flex-col md:flex-row">
+        {/* Left: Merchant Value Propositions & Trust Signals */}
+        <div className="w-full md:w-5/12 bg-gradient-to-br from-[#0058be] to-[#154699] p-8 sm:p-10 text-white flex flex-col justify-between">
+          <div className="flex flex-col gap-6">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-white/20 backdrop-blur-xs flex items-center justify-center text-white shadow-xs">
+                <span className="material-symbols-outlined text-[22px]">barcode</span>
+              </div>
+              <span className="font-bold text-[20px] tracking-tight text-white">SKUcoverage</span>
+            </div>
+
+            <div>
+              <span className="inline-block px-2.5 py-1 rounded-full bg-white/15 text-[11px] font-bold uppercase tracking-wider text-white mb-2">
+                For Shopify Store Owners
+              </span>
+              <h2 className="text-[22px] sm:text-[24px] font-extrabold leading-tight">
+                Fix Catalog Errors. Maximize Google Shopping Ad ROAS.
+              </h2>
+              <p className="text-[13px] text-white/80 mt-2 leading-relaxed">
+                Scan your public storefront to catch missing GTINs, broken categories, and truncated titles before ad platforms disapprove your products.
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-3.5 pt-2">
+              <div className="flex items-start gap-3 text-[13px]">
+                <span className="material-symbols-outlined text-[18px] text-[#6ffbbe] shrink-0 mt-0.5">check_circle</span>
+                <span><strong>Zero Setup:</strong> Just paste your .myshopify.com store domain — no API keys required.</span>
+              </div>
+              <div className="flex items-start gap-3 text-[13px]">
+                <span className="material-symbols-outlined text-[18px] text-[#6ffbbe] shrink-0 mt-0.5">check_circle</span>
+                <span><strong>6-Axis Scoring:</strong> Immediate diagnostic of titles, barcodes, images, and categories.</span>
+              </div>
+              <div className="flex items-start gap-3 text-[13px]">
+                <span className="material-symbols-outlined text-[18px] text-[#6ffbbe] shrink-0 mt-0.5">check_circle</span>
+                <span><strong>Actionable Fix CSV:</strong> Export structured fix lists to review and update products fast.</span>
+              </div>
+            </div>
           </div>
-          <span className="font-bold text-[20px] tracking-tight text-[#131b2e]">SKUcoverage</span>
+
+          <div className="mt-8 pt-6 border-t border-white/15 flex items-center gap-3">
+            <div className="w-8 h-8 rounded-full bg-[#6ffbbe] flex items-center justify-center text-[#002113]">
+              <span className="material-symbols-outlined text-[18px]">verified</span>
+            </div>
+            <div className="text-[12px] text-white/90">
+              <strong>Free tier available:</strong> Scan up to 100 SKUs instantly with zero payment details.
+            </div>
+          </div>
         </div>
 
-        <div>
-          <h1 className="text-[26px] font-extrabold text-[#131b2e] tracking-tight">
-            {isSignup ? 'Create your account' : 'Welcome back'}
-          </h1>
-          <p className="text-[14px] text-[#64748b] mt-1">
-            {isSignup
-              ? 'Start with a free catalog audit. No payment details required.'
-              : 'Sign in to access your Shopify audit reports and diagnostics.'}
-          </p>
-        </div>
-
-        {notice && (
-          <div className="p-3.5 bg-[#f0fdf4] border border-[#bbf7d0] text-[#166534] rounded-xl text-[13px] font-semibold flex items-center justify-between gap-2">
-            <span>{notice}</span>
-            {isSignup && (
-              <button
-                type="button"
-                onClick={resendAuthConfirmation}
-                disabled={authBusy}
-                className="text-[#0058be] underline hover:no-underline text-[12px] cursor-pointer"
-              >
-                Resend
-              </button>
-            )}
+        {/* Right: Authentication Form */}
+        <div className="w-full md:w-7/12 p-8 sm:p-10 flex flex-col justify-center gap-6">
+          <div>
+            <h1 className="text-[26px] font-extrabold text-[#131b2e] tracking-tight">
+              {isSignup ? 'Create your merchant account' : 'Welcome back'}
+            </h1>
+            <p className="text-[14px] text-[#64748b] mt-1">
+              {isSignup
+                ? 'Start with a free catalog audit. Takes less than 60 seconds.'
+                : 'Sign in to access your audit reports, score history, and fix lists.'}
+            </p>
           </div>
-        )}
 
-        {authError && (
-          <div className="p-3.5 bg-[#fef2f2] border border-[#fecaca] text-[#991b1b] rounded-xl text-[13px] font-semibold">
-            {authError}
-          </div>
-        )}
-
-        <form onSubmit={submitAuth} className="flex flex-col gap-4">
-          {isSignup && (
-            <div className="flex flex-col gap-1.5">
-              <label className="text-[13px] font-bold text-[#131b2e]">Your name</label>
-              <input
-                type="text"
-                required
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Alex Merchant"
-                className="px-4 py-2.5 bg-[#f2f3ff] rounded-xl text-[14px] text-[#131b2e] border border-transparent focus:border-[#0058be] focus:outline-hidden focus:ring-2 focus:ring-[#0058be]/20"
-              />
+          {notice && (
+            <div className="p-3.5 bg-[#f0fdf4] border border-[#bbf7d0] text-[#166534] rounded-xl text-[13px] font-semibold flex items-center justify-between gap-2">
+              <span>{notice}</span>
+              {isSignup && (
+                <button
+                  type="button"
+                  onClick={resendAuthConfirmation}
+                  disabled={authBusy}
+                  className="text-[#0058be] underline hover:no-underline text-[12px] cursor-pointer"
+                >
+                  Resend
+                </button>
+              )}
             </div>
           )}
 
-          <div className="flex flex-col gap-1.5">
-            <label className="text-[13px] font-bold text-[#131b2e]">Email address</label>
-            <input
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="owner@store.com"
-              className="px-4 py-2.5 bg-[#f2f3ff] rounded-xl text-[14px] text-[#131b2e] border border-transparent focus:border-[#0058be] focus:outline-hidden focus:ring-2 focus:ring-[#0058be]/20"
-            />
-          </div>
+          {authError && (
+            <div className="p-3.5 bg-[#fef2f2] border border-[#fecaca] text-[#991b1b] rounded-xl text-[13px] font-semibold">
+              {authError}
+            </div>
+          )}
 
-          <div className="flex flex-col gap-1.5">
-            <label className="text-[13px] font-bold text-[#131b2e]">Password</label>
-            <input
-              type="password"
-              required
-              minLength={8}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              className="px-4 py-2.5 bg-[#f2f3ff] rounded-xl text-[14px] text-[#131b2e] border border-transparent focus:border-[#0058be] focus:outline-hidden focus:ring-2 focus:ring-[#0058be]/20"
-            />
-          </div>
+          <form onSubmit={submitAuth} className="flex flex-col gap-4">
+            {isSignup && (
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[13px] font-bold text-[#131b2e]">Your name</label>
+                <input
+                  type="text"
+                  required
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Alex Merchant"
+                  className="px-4 py-2.5 bg-[#f2f3ff] rounded-xl text-[14px] text-[#131b2e] border border-transparent focus:border-[#0058be] focus:outline-hidden focus:ring-2 focus:ring-[#0058be]/20"
+                />
+              </div>
+            )}
 
-          <button
-            type="submit"
-            disabled={authBusy}
-            className="w-full mt-2 py-3 rounded-xl bg-gradient-to-r from-[#0058be] to-[#2170e4] hover:opacity-95 text-white font-bold text-[14px] shadow-[0_8px_20px_rgba(59,130,246,0.3)] transition-all cursor-pointer disabled:opacity-50"
-          >
-            {authBusy ? 'Please wait…' : isSignup ? 'Create Free Account' : 'Sign in'}
-          </button>
-        </form>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[13px] font-bold text-[#131b2e]">Work email</label>
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="owner@store.com"
+                className="px-4 py-2.5 bg-[#f2f3ff] rounded-xl text-[14px] text-[#131b2e] border border-transparent focus:border-[#0058be] focus:outline-hidden focus:ring-2 focus:ring-[#0058be]/20"
+              />
+            </div>
 
-        <button
-          type="button"
-          onClick={() => signInWithGoogle()}
-          className="w-full py-2.5 rounded-xl bg-white border border-[#cbd5e1] text-[#131b2e] font-semibold text-[13px] hover:bg-[#f8fafc] transition-colors cursor-pointer flex items-center justify-center gap-2 shadow-xs"
-        >
-          <span>Continue with Google</span>
-        </button>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[13px] font-bold text-[#131b2e]">Password</label>
+              <input
+                type="password"
+                required
+                minLength={8}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                className="px-4 py-2.5 bg-[#f2f3ff] rounded-xl text-[14px] text-[#131b2e] border border-transparent focus:border-[#0058be] focus:outline-hidden focus:ring-2 focus:ring-[#0058be]/20"
+              />
+            </div>
 
-        <p className="text-[13px] text-[#64748b] text-center pt-2">
-          {isSignup ? 'Already have an account? ' : 'New to SKUcoverage? '}
+            <button
+              type="submit"
+              disabled={authBusy}
+              className="w-full mt-2 py-3 rounded-xl bg-gradient-to-r from-[#0058be] to-[#2170e4] hover:opacity-95 text-white font-bold text-[14px] shadow-[0_8px_20px_rgba(59,130,246,0.3)] transition-all cursor-pointer disabled:opacity-50"
+            >
+              {authBusy ? 'Please wait…' : isSignup ? 'Create Free Account' : 'Sign in'}
+            </button>
+          </form>
+
           <button
             type="button"
-            onClick={() => changeMode(isSignup ? 'login' : 'signup')}
-            className="text-[#0058be] font-bold hover:underline cursor-pointer"
+            onClick={() => signInWithGoogle()}
+            className="w-full py-2.5 rounded-xl bg-white border border-[#cbd5e1] text-[#131b2e] font-semibold text-[13px] hover:bg-[#f8fafc] transition-colors cursor-pointer flex items-center justify-center gap-2 shadow-xs"
           >
-            {isSignup ? 'Sign in' : 'Create an account'}
+            <span>Continue with Google</span>
           </button>
-        </p>
+
+          <p className="text-[13px] text-[#64748b] text-center pt-1">
+            {isSignup ? 'Already have an account? ' : 'New to SKUcoverage? '}
+            <button
+              type="button"
+              onClick={() => changeMode(isSignup ? 'login' : 'signup')}
+              className="text-[#0058be] font-bold hover:underline cursor-pointer"
+            >
+              {isSignup ? 'Sign in' : 'Create an account'}
+            </button>
+          </p>
+        </div>
       </div>
     </div>
   );
@@ -810,6 +853,7 @@ export function App() {
                 onDownloadCsv={handleDownloadReportCsv}
                 onOpenAuditScope={() => setInfoModalType('scope')}
                 onNavigateTab={handleSelectTab}
+                onOpenUpgrade={() => setIsUpgradeOpen(true)}
               />
             )
           )}

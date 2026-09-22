@@ -12,6 +12,7 @@ interface CatalogHealthViewProps {
   onDownloadCsv: () => void;
   onOpenAuditScope: () => void;
   onNavigateTab?: (tab: NavigationTab) => void;
+  onOpenUpgrade?: () => void;
 }
 
 export const CatalogHealthView: React.FC<CatalogHealthViewProps> = ({
@@ -25,10 +26,12 @@ export const CatalogHealthView: React.FC<CatalogHealthViewProps> = ({
   onDownloadCsv,
   onOpenAuditScope,
   onNavigateTab,
+  onOpenUpgrade,
 }) => {
   const [storeInput, setStoreInput] = useState(auditData?.storeDomain || '');
   const [scanStep] = useState<1 | 2 | 3>(2);
   const [findingFilter, setFindingFilter] = useState<'all' | 'confirmed' | 'verify' | 'improvements'>('all');
+  const [showFindingsGuide, setShowFindingsGuide] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -93,19 +96,51 @@ export const CatalogHealthView: React.FC<CatalogHealthViewProps> = ({
               </form>
             </div>
 
+            {/* Quick Demo Store Button */}
+            <div className="flex items-center justify-center gap-2 mt-3 text-[12px] text-[#727785]">
+              <span>Want to see an audit first?</span>
+              <button
+                type="button"
+                onClick={() => {
+                  setStoreInput('allbirds.myshopify.com');
+                  onStartAudit('allbirds.myshopify.com');
+                }}
+                className="font-bold text-[#0058be] hover:text-[#2170e4] hover:underline cursor-pointer inline-flex items-center gap-1 bg-[#eaedff] px-3 py-1 rounded-full transition-all"
+              >
+                <span>Run sample demo audit (Allbirds)</span>
+                <span className="material-symbols-outlined text-[14px]">arrow_outward</span>
+              </button>
+            </div>
+
             {/* Verified metadata tags under input */}
             <div className="flex items-center justify-center flex-wrap gap-4 mt-4 text-[11px] font-semibold text-[#727785]">
               <span className="flex items-center gap-1">
                 <span className="material-symbols-outlined text-[16px] text-[#006c49]">lock</span>
-                Read-only storefront API
+                100% Read-Only Storefront API
               </span>
               <span className="w-1 h-1 rounded-full bg-[#c2c6d6]" />
               <span className="flex items-center gap-1">
                 <span className="material-symbols-outlined text-[16px] text-[#006c49]">bolt</span>
-                ~45 seconds scan
+                ~45 Second Diagnostic
               </span>
               <span className="w-1 h-1 rounded-full bg-[#c2c6d6]" />
-              <span>Zero app install</span>
+              <span className="flex items-center gap-1">
+                <span className="material-symbols-outlined text-[16px] text-[#006c49]">verified</span>
+                Zero App Installation
+              </span>
+            </div>
+          </div>
+
+          {/* Trust & Specification Guarantee Bar */}
+          <div className="w-full max-w-3xl mx-auto mb-8 p-4 px-6 rounded-2xl bg-white/95 border border-[#c2c6d6]/30 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-4 text-[12px]">
+            <div className="flex items-center gap-2.5 text-[#006c49] font-bold shrink-0">
+              <div className="w-7 h-7 rounded-full bg-[#eef9f3] flex items-center justify-center">
+                <span className="material-symbols-outlined text-[18px]">verified_user</span>
+              </div>
+              <span>Non-Destructive Read-Only Guarantee</span>
+            </div>
+            <div className="text-[#424754] text-center sm:text-right leading-relaxed">
+              We never request private API keys, write permissions, or customer data. Rules audited against official <strong>GS1 Checksum</strong> &amp; <strong>Google Merchant Center Product Data Specifications</strong>.
             </div>
           </div>
 
@@ -673,6 +708,34 @@ export const CatalogHealthView: React.FC<CatalogHealthViewProps> = ({
         </div>
       </section>
 
+      {/* Free Plan Scan Limit Reached Notice Banner */}
+      {(auditData.limitReached || (auditData.scanLimit === 100 && (auditData.scanned ?? auditData.productsCount) >= 100)) && (
+        <section className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-[#eaedff] via-[#f2f3ff] to-[#e2e7ff] border border-[#0058be]/25 shadow-xs">
+          <div className="flex items-start gap-3">
+            <span className="material-symbols-outlined text-[#0058be] text-[24px] shrink-0 mt-0.5">info</span>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-[14px] font-extrabold text-[#131b2e]">Free Tier Limit Reached (First 100 Products Audited)</span>
+                <span className="px-2 py-0.5 rounded-full bg-[#0058be] text-white text-[10px] font-bold uppercase tracking-wider">Sample Scan</span>
+              </div>
+              <p className="text-[13px] text-[#424754] mt-1 leading-relaxed">
+                This run assessed the first 100 products from your storefront. Items beyond the first 100 remain uninspected and may harbor active Google Merchant Center disapprovals. Upgrade to Pro to audit up to 2,000 SKUs.
+              </p>
+            </div>
+          </div>
+          {onOpenUpgrade && (
+            <button
+              type="button"
+              onClick={onOpenUpgrade}
+              className="px-5 py-2.5 rounded-full bg-[#0058be] hover:bg-[#2170e4] text-white font-bold text-[13px] shadow-xs cursor-pointer shrink-0 transition-all flex items-center gap-1.5"
+            >
+              <span className="material-symbols-outlined text-[16px]">lock_open</span>
+              <span>Unlock Full Store Scan ($19/mo)</span>
+            </button>
+          )}
+        </section>
+      )}
+
       {/* Merchant-first summary: the result in plain language before any detail. */}
       <section className="rounded-[20px] border border-[#c2c6d6]/40 bg-gradient-to-br from-white to-[#f2f3ff] p-5 sm:p-6 shadow-xs">
         <div className="flex items-start gap-3">
@@ -858,7 +921,17 @@ export const CatalogHealthView: React.FC<CatalogHealthViewProps> = ({
         <section className="flex flex-col gap-4">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <h2 className="text-[18px] font-bold text-[#131b2e]">Findings</h2>
+              <div className="flex items-center gap-2">
+                <h2 className="text-[18px] font-bold text-[#131b2e]">Findings</h2>
+                <button
+                  type="button"
+                  onClick={() => setShowFindingsGuide(!showFindingsGuide)}
+                  className="inline-flex items-center gap-1 text-[11px] font-bold text-[#0058be] hover:underline cursor-pointer bg-[#eaedff] px-2.5 py-1 rounded-full transition-colors"
+                >
+                  <span className="material-symbols-outlined text-[14px]">help_outline</span>
+                  <span>{showFindingsGuide ? 'Hide guide' : 'What do these categories mean?'}</span>
+                </button>
+              </div>
               <p className="mt-1 text-[12px] text-[#424754]">Choose a group, then open it to review the affected products and evidence.</p>
             </div>
             <div className="grid grid-cols-2 gap-2 sm:flex" role="group" aria-label="Filter findings">
@@ -880,6 +953,39 @@ export const CatalogHealthView: React.FC<CatalogHealthViewProps> = ({
               ))}
             </div>
           </div>
+
+          {/* Interactive Findings Explainer Guide for Merchants */}
+          {showFindingsGuide && (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 p-4 bg-[#f8f9ff] rounded-2xl border border-[#c2c6d6]/30 text-[12px] animate-fadeIn">
+              <div className="p-3.5 bg-white rounded-xl border border-[#ba1a1a]/20 shadow-2xs">
+                <div className="flex items-center gap-1.5 font-bold text-[#ba1a1a] mb-1">
+                  <span className="w-2 h-2 rounded-full bg-[#ba1a1a]" />
+                  <span>1. Confirmed Issues</span>
+                </div>
+                <p className="text-[#424754] leading-relaxed">
+                  Definite storefront errors (e.g. missing product titles, zero images, character truncation). These directly reduce your store health score and cause channel disapprovals.
+                </p>
+              </div>
+              <div className="p-3.5 bg-white rounded-xl border border-[#0058be]/20 shadow-2xs">
+                <div className="flex items-center gap-1.5 font-bold text-[#0058be] mb-1">
+                  <span className="w-2 h-2 rounded-full bg-[#0058be]" />
+                  <span>2. Needs Verification</span>
+                </div>
+                <p className="text-[#424754] leading-relaxed">
+                  Barcodes and GTINs that pass basic formatting but require confirmation against physical packaging or GS1 records before Google Merchant Center rejects them.
+                </p>
+              </div>
+              <div className="p-3.5 bg-white rounded-xl border border-[#006c49]/20 shadow-2xs">
+                <div className="flex items-center gap-1.5 font-bold text-[#006c49] mb-1">
+                  <span className="w-2 h-2 rounded-full bg-[#006c49]" />
+                  <span>3. Suggested Improvements</span>
+                </div>
+                <p className="text-[#424754] leading-relaxed">
+                  Growth and SEO opportunities (e.g. richer product descriptions, deep Google category taxonomy mapping) to maximize organic search impressions and ad ROAS.
+                </p>
+              </div>
+            </div>
+          )}
 
           {[
             { key: 'confirmed', filter: 'confirmed', heading: 'Confirmed issues', count: findingSummary.confirmedIssues, caption: 'Problems observed directly in the storefront data.', action: 'Review confirmed issues', list: confirmedIssuesList },

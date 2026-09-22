@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Terms of Service – SKUcoverage</title>
+  <meta name="description" content="Terms of Service for SKUcoverage catalog auditing and Google Merchant Center compliance tool.">
+  <link rel="icon" href="/framerusercontent.com/images/RXZaWpPO8xqy7UXViVlRYw1NH14.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      color: #1e293b;
+      background-color: #f8fafc;
+      line-height: 1.65;
+      padding: 0;
+      margin: 0;
+    }
+    header {
+      background: rgba(255, 255, 255, 0.9);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid #e2e8f0;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+    .header-container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 16px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .brand {
+      font-size: 18px;
+      font-weight: 800;
+      color: #0f172a;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .back-link {
+      font-size: 14px;
+      font-weight: 600;
+      color: #2563eb;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .back-link:hover { text-decoration: underline; }
+    main {
+      max-width: 900px;
+      margin: 40px auto 80px;
+      padding: 0 24px;
+    }
+    .card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 20px;
+      padding: 48px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    }
+    h1 {
+      font-size: 32px;
+      font-weight: 800;
+      color: #0f172a;
+      margin-bottom: 8px;
+    }
+    .updated {
+      font-size: 14px;
+      color: #64748b;
+      margin-bottom: 32px;
+      display: block;
+    }
+    h2 {
+      font-size: 20px;
+      font-weight: 700;
+      color: #0f172a;
+      margin: 32px 0 12px;
+    }
+    p { margin-bottom: 16px; color: #475569; font-size: 15px; }
+    ul { margin: 0 0 16px 24px; color: #475569; font-size: 15px; }
+    li { margin-bottom: 8px; }
+    .highlight-box {
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      border-radius: 12px;
+      padding: 20px;
+      margin: 24px 0;
+    }
+    .highlight-box p { margin-bottom: 0; color: #166534; font-weight: 500; }
+    footer {
+      border-top: 1px solid #e2e8f0;
+      padding: 32px 24px;
+      text-align: center;
+      font-size: 13px;
+      color: #64748b;
+      background: #ffffff;
+    }
+    footer a { color: #2563eb; text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="header-container">
+      <a href="/" class="brand">
+        <span>SKUcoverage</span>
+      </a>
+      <a href="/" class="back-link">← Back to Home</a>
+    </div>
+  </header>
+
+  <main>
+    <div class="card">
+      <h1>Terms of Service</h1>
+      <span class="updated">Last updated: September 20, 2026</span>
+
+      <div class="highlight-box">
+        <p><strong>Merchant Guarantee:</strong> We operate on a read-only audit architecture. We never modify your live store or invent fake barcodes. All paid plans include an unconditional 14-day money-back guarantee.</p>
+      </div>
+
+      <h2>1. Agreement to Terms</h2>
+      <p>By accessing or using SKUcoverage (<a href="https://skucoverage.tech" style="color:#2563eb;">skucoverage.tech</a>), you agree to be bound by these Terms of Service. If you do not agree to these terms, please do not use our services.</p>
+
+      <h2>2. Description of Service</h2>
+      <p>SKUcoverage provides automated catalog health analysis, GS1 barcode checksum validation, Google Product Taxonomy categorization recommendations, and Shopify-formatted remediation CSV exports for e-commerce store operators.</p>
+
+      <h2>3. Read-Only Architecture &amp; Merchant Responsibility</h2>
+      <p><strong>A. Read-Only Operation:</strong> SKUcoverage analyzes publicly accessible Shopify storefront feeds (<code>/products.json</code>). We do not require, request, or retain admin write credentials for your store.</p>
+      <p><strong>B. Merchant Control Over Imports:</strong> We export pre-formatted CSV fix lists that merchants may optionally import into their Shopify store. You retain full discretion and control over whether, when, and how you apply any recommended changes. We strongly advise backing up your existing product catalog via Shopify Admin export before applying bulk CSV updates.</p>
+      <p><strong>C. No Barcode Fabrication:</strong> Barcodes (GTIN-12 / EAN-13) are legally licensed identifiers issued by GS1. SKUcoverage will never invent or fabricate barcodes for your products. It is the merchant's responsibility to obtain authentic barcodes from their suppliers or GS1 registration.</p>
+
+      <h2>4. Subscription Billing, Cancellation &amp; Refunds</h2>
+      <p><strong>A. Plans:</strong> Paid plans (Pro at $19/month and Scale at $39/month) provide higher SKU limits, automated recurring audits, and full CSV exports. Billing is processed securely through Stripe.</p>
+      <p><strong>B. 1-Click Cancellation:</strong> You may cancel your subscription at any time directly through your account dashboard or by contacting support. Your access will continue through the end of the paid billing period.</p>
+      <p><strong>C. 14-Day Money-Back Guarantee:</strong> If you are not satisfied with SKUcoverage for any reason, request a full refund within 14 days of your initial purchase by emailing <a href="mailto:support@skucoverage.tech" style="color:#2563eb;">support@skucoverage.tech</a>. Refunds are processed promptly with no questions asked.</p>
+
+      <h2>5. Fair Use &amp; Service Availability</h2>
+      <p>To ensure system stability, anonymous scans are subject to rate limiting (up to 5 scans per hour per IP). We reserve the right to temporarily restrict automated scraping or denial-of-service attempts that degrade edge service performance for other merchants.</p>
+
+      <h2>6. Intellectual Property &amp; Trademarks</h2>
+      <p>SKUcoverage and its proprietary diagnostic scoring algorithms are the intellectual property of SKUcoverage. <em>Shopify</em> is a registered trademark of Shopify Inc. <em>Google Merchant Center</em> is a trademark of Google LLC. SKUcoverage is an independent diagnostics tool and is not affiliated with, sponsored by, or endorsed by Shopify Inc. or Google LLC.</p>
+
+      <h2>7. Limitation of Liability</h2>
+      <p>SKUcoverage provides recommendations to assist with catalog data quality and feed compliance. While our checks reflect official GS1 and Google specifications, search platforms independently enforce ad approvals and account standing. To the maximum extent permitted by applicable law, SKUcoverage shall not be liable for any indirect, incidental, or consequential damages resulting from the use or inability to use our services.</p>
+
+      <h2>8. Contact Information</h2>
+      <p>If you have any questions or require assistance regarding these Terms, please contact:</p>
+      <p><strong>SKUcoverage Support Team</strong><br>
+      Email: <a href="mailto:support@skucoverage.tech" style="color:#2563eb;">support@skucoverage.tech</a><br>
+      Website: <a href="https://skucoverage.tech" style="color:#2563eb;">skucoverage.tech</a></p>
+    </div>
+  </main>
+
+  <footer>
+    <p>&copy; 2026 SKUcoverage. All rights reserved. &bull; <a href="/terms">Terms of Service</a> &bull; <a href="/privacy">Privacy Policy</a></p>
+  </footer>
+</body>
+</html>

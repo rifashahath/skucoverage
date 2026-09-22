@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, ReferenceLine } from 'recharts';
+import { toast } from 'sonner';
 import { AuditRecord } from '../types';
 
 interface AuditHistoryViewProps {
@@ -49,6 +51,21 @@ export const AuditHistoryView: React.FC<AuditHistoryViewProps> = ({
       ? Math.round((historyRecords.filter((r) => r.status === 'Completed').length / historyRecords.length) * 100)
       : 0;
 
+  // Recharts data — chronological (oldest first) for left→right trend
+  const chartData = [...completedRecords]
+    .reverse()
+    .map((r) => ({ date: r.date, score: r.score }));
+
+  const avgScore =
+    chartData.length > 0
+      ? Math.round(chartData.reduce((s, d) => s + (d.score ?? 0), 0) / chartData.length)
+      : null;
+
+  const handleRunNewAudit = () => {
+    onRunNewAudit();
+    toast.info('Audit queued — your catalog is being scanned. Results appear here when complete.');
+  };
+
   return (
     <div className="flex flex-col w-full gap-6">
       {/* Header Bar */}
@@ -68,7 +85,7 @@ export const AuditHistoryView: React.FC<AuditHistoryViewProps> = ({
 
         <div className="flex items-center gap-3">
           <button
-            onClick={onRunNewAudit}
+            onClick={handleRunNewAudit}
             className="px-5 py-2.5 rounded-full bg-[#0058be] hover:bg-[#2170e4] text-white font-bold text-[13px] shadow-xs cursor-pointer flex items-center gap-2"
           >
             <span className="material-symbols-outlined text-[18px]">add_circle</span>
@@ -188,6 +205,51 @@ export const AuditHistoryView: React.FC<AuditHistoryViewProps> = ({
           </div>
         </div>
       </section>
+
+      {/* Score Trend Chart — Recharts */}
+      {chartData.length >= 2 && (
+        <div className="bg-white rounded-[20px] p-6 lg:p-8 shadow-[0_20px_40px_rgba(0,0,0,0.08)] border border-[#e2e8f0]">
+          <div className="flex items-center justify-between mb-5">
+            <div>
+              <div className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-[#0058be] mb-1">
+                <span className="material-symbols-outlined text-[16px]">show_chart</span>
+                <span>Health Score Trend</span>
+              </div>
+              <p className="text-[13px] text-[#424754]">
+                Score trajectory across all completed audits for this store.
+              </p>
+            </div>
+            {avgScore !== null && (
+              <div className="text-right">
+                <div className="text-[11px] font-bold uppercase tracking-wider text-[#727785]">Avg Score</div>
+                <div className="text-[28px] font-extrabold text-[#0058be] leading-none">{avgScore}<span className="text-[14px] font-semibold text-[#727785]">/100</span></div>
+              </div>
+            )}
+          </div>
+          <ResponsiveContainer width="100%" height={200}>
+            <LineChart data={chartData} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#eaedff" />
+              <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#727785' }} tickLine={false} axisLine={false} />
+              <YAxis domain={[0, 100]} tick={{ fontSize: 11, fill: '#727785' }} tickLine={false} axisLine={false} />
+              <Tooltip
+                contentStyle={{ background: '#fff', border: '1px solid #eaedff', borderRadius: 10, fontSize: 13 }}
+                formatter={(v: number) => [`${v} / 100`, 'Score']}
+              />
+              {avgScore !== null && (
+                <ReferenceLine y={avgScore} stroke="#c2c6d6" strokeDasharray="4 4" label={{ value: `avg ${avgScore}`, fill: '#727785', fontSize: 11 }} />
+              )}
+              <Line
+                type="monotone"
+                dataKey="score"
+                stroke="#0058be"
+                strokeWidth={2.5}
+                dot={{ r: 4, fill: '#0058be', strokeWidth: 0 }}
+                activeDot={{ r: 6, fill: '#2170e4' }}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      )}
 
       {/* Main Table Card */}
       <div className="bg-white rounded-[20px] p-6 lg:p-8 shadow-[0_20px_40px_rgba(0,0,0,0.08)] border border-[#e2e8f0] flex flex-col gap-6">
